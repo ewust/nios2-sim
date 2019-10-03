@@ -10,6 +10,22 @@ class Nios2(object):
         self.mem = bytearray(init_mem + (64*1024*1024 - len(init_mem))*b'\xaa')
         self.ctls_regs = [np.uint32(0)]*32
         self.halted = False
+        # map of addr => handling function for mmios
+        self.mmios = {
+                0xFF200000: self.mmio_led,
+                0xFF200040: self.mmio_sw,
+                }
+
+
+    # 0xFF200000
+    def mmio_led(self, value=None):
+        if value is None:
+            return 0x0
+        print('Set LEDs to 0x%08x' % value)
+
+    def mmio_sw(self, value=None):
+        if value is None:
+            return 0x2aa # example switches
 
     ########################
     # Loads and stores
@@ -17,6 +33,10 @@ class Nios2(object):
     def loadword(self, addr):
         # Word align
         addr = addr & 0xfffffffc
+        if addr > len(self.mem):
+            # check mmio
+            if addr in self.mmios:
+                return np.uint32(self.mmios[addr]())
 
         word, = struct.unpack('<I', self.mem[addr:addr+4])
         return np.uint32(word)
@@ -33,6 +53,10 @@ class Nios2(object):
     def storeword(self, addr, val):
         # Word align
         addr = addr & 0xfffffffc
+        if addr > len(self.mem):
+            if addr in self.mmios:
+                self.mmios[addr](val)
+                return
         self.mem[addr:addr+4] = bytearray(struct.pack('<I', val))
 
     def storehalfword(self, addr, val):
@@ -605,11 +629,12 @@ if __name__ == '__main__':
 
     inst = 0
     while not(cpu.halted):
-        print('===============')
-        print('  Instruction %d' % inst)
-        cpu.print_regs(9)
+        #print('===============')
+        #print('  Instruction %d' % inst)
+        #cpu.print_regs(9)
         cpu.one_step()
         inst += 1
-
+    print('===========')
+    print('%d instructions' % inst)
     cpu.print_regs()
     cpu.dump_mem(0x00, 0x100)
