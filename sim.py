@@ -264,6 +264,9 @@ class Nios2(object):
              0x3b: self.flushd,
              0x3c: self.xorhi,
             }
+        if op not in d:
+            self.halted = True
+            self.error = 'Invalid instruction opcode: 0x%08x' % (self.loadword(self.pc))
         d[op](rA, rB, offset)
 
 
