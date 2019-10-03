@@ -4,9 +4,9 @@ import struct
 import sys
 
 class Nios2(object):
-    def __init__(self, init_mem=b''):
+    def __init__(self, init_mem=b'', start_pc=0):
         self.regs = [np.uint32(0)]*32
-        self.pc = np.uint32(0)
+        self.pc = np.uint32(start_pc)
         self.mem = bytearray(init_mem + (64*1024*1024 - len(init_mem))*b'\xaa')
         self.ctls_regs = [np.uint32(0)]*32
         self.halted = False
@@ -593,10 +593,14 @@ N:   .word 5'''
 
 if __name__ == '__main__':
     test_prog = '010000342100100401400034294015040180003431801a04318000170180060e21c0001729c00015210001042940010431bfffc4003ff906003da03a003ffe0600000003000000080000000affffffff41424344000000000000000000000000000000000000000000000005'
+    start_pc = 0
     if len(sys.argv) > 1:
         test_prog = sys.argv[1]
+    if len(sys.argv) > 2:
+        start_pc = int(sys.argv[2], 16)
+
     prog = bytes.fromhex(test_prog)
-    cpu = Nios2(init_mem=flip_word_endian(prog))
+    cpu = Nios2(init_mem=flip_word_endian(prog), start_pc=start_pc)
     cpu.dump_mem(0x00, 0x100)
 
     inst = 0
