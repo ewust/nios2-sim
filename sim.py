@@ -7,7 +7,12 @@ class Nios2(object):
         self.regs = [np.uint32(0)]*32
         self.pc = np.uint32(0)
         self.mem = bytearray(init_mem + (64*1024*1024 - len(init_mem))*b'\xaa')
+        self.ctls_regs = [np.uint32(0)]*32
+        self.halted = False
 
+    ########################
+    # Loads and stores
+    ########################
     def loadword(self, addr):
         # Word align
         addr = addr & 0xfffffffc
@@ -37,6 +42,9 @@ class Nios2(object):
         self.mem[addr] = val
 
 
+    ########################
+    # General purpose registers
+    ########################
     def get_reg(self, rA):
         return self.regs[rA]
 
@@ -44,7 +52,19 @@ class Nios2(object):
         if rA > 0:
             self.regs[rA] = np.uint32(val)
 
-    # sign extend offset
+
+    ########################
+    # TODO: control registers require special handling
+    ########################
+    def get_ctl_reg(self, n):
+        return self.ctl_regs[n]
+
+    def set_ctl_reg(self, n, val):
+        self.ctl_regs[n] = val
+
+    ########################
+    # I-type instructions
+    ########################
     def addi(self, rA, rB, offset):
         self.set_reg(rB, self.get_reg(rA) + np.int16(offset))
 
@@ -221,20 +241,248 @@ class Nios2(object):
             }
         d[op](rA, rB, offset)
 
+
+    ###############################
+    # R-type
+    ##############################
+    def add(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) + self.get_reg(rB))
+
+    def _and(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) & self.get_reg(rB))
+
+    def _break(self, rA, rB, rC, imm5):
+        # Debug breakpoint...
+        # bstatus = status
+        # PIE = 0, U = 0
+        # ba = PC (+4, but already happened)
+        # PC = break handler addr
+        self.halted = True
+        pass
+
+    def _bret(self, rA, rB, rC, imm5):
+        # PC = ba
+        # status = bstatus
+        pass
+
+    def callr(self, rA, rB, rC, imm5):
+        # ra = PC (+4)
+        # PC = rA
+        self.set_reg(31, self.pc)
+        self.pc = self.get_reg(rA)
+
+    def cmpeq(self, rA, rB, rC, imm5):
+        if self.get_reg(rA) == self.get_reg(rB):
+            self.set_reg(rC, 1)
+        else:
+            self.set_reg(rC, 0)
+
+    def cmpge(self, rA, rB, rC, imm5):
+        if np.int32(self.get_reg(rA)) >= np.int32(self.get_reg(rB)):
+            self.set_reg(rC, 1)
+        else:
+            self.set_reg(rC, 0)
+
+    def cmpgeu(self, rA, rB, rC, imm5):
+        if np.uint32(self.get_reg(rA)) >= np.uint32(self.get_reg(rB)):
+            self.set_reg(rC, 1)
+        else:
+            self.set_reg(rC, 0)
+
+    def cmplt(self, rA, rB, rC, imm5):
+        if np.int32(self.get_reg(rA)) < np.int32(self.get_reg(rB)):
+            self.set_reg(rC, 1)
+        else:
+            self.set_reg(rC, 0)
+
+    def cmpltu(self, rA, rB, rC, imm5):
+        if np.uint32(self.get_reg(rA)) < np.uint32(self.get_reg(rB)):
+            self.set_reg(rC, 1)
+        else:
+            self.set_reg(rC, 0)
+
+    def cmpne(self, rA, rB, rC, imm5):
+        if self.get_reg(rA) != self.get_reg(rB):
+            self.set_reg(rC, 1)
+        else:
+            self.set_reg(rC, 0)
+
+    def div(self, rA, rB, rC, imm5):
+        if self.get_reg(rB) != 0:
+            self.set_reg(rC, np.int32(np.int32(self.get_reg(rA)) / np.int32(self.get_reg(rB))))
+
+    def divu(self, rA, rB, rC, imm5):
+        if self.get_reg(rB) != 0:
+            self.set_reg(rC, np.uint32(np.uint32(self.get_reg(rA)) / np.uint32(self.get_reg(rB))))
+
+    def eret(self, rA, rB, rC, imm5):
+        # status = estatus
+        # PC = ea
+        pass
+
+    def flushi(self, rA, rB, rC, imm5):
+        pass
+    def flushp(self, rA, rB, rC, imm5):
+        pass
+    def initi(self, rA, rB, rC, imm5):
+        pass
+
+    def jmp(self, rA, rB, rC, imm5):
+        self.pc = self.get_reg(rA)
+
+    def mul(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) * self.get_reg(rB))
+
+    def mulxss(self, rA, rB, rC, imm5):
+        res = np.int64(self.get_reg(rA)) * np.int64(self.get_reg(rB))
+        self.set_reg(rC, np.uint32(res >> 32))
+
+    def mulxsu(self, rA, rB, rC, imm5):
+        res = np.int64(self.get_reg(rA)) * np.uint64(self.get_reg(rB))
+        self.set_reg(rC, np.uint32(res >> 32))
+
+    def mulxuu(self, rA, rB, rC, imm5):
+        res = np.uint64(self.get_reg(rA)) * np.uint64(self.get_reg(rB))
+        self.set_reg(rC, np.uint32(res >> 32))
+
+    def nextpc(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.pc)
+
+    def nor(self, rA, rB, rC, imm5):
+        self.set_reg(rC, ~(self.get_reg(rA) | self.get_reg(rB)))
+
+    def _or(self, rA, rB, rC, imm5):
+        self.set_reg(rC, (self.get_reg(rA) | self.get_reg(rB)))
+
+    def rdctl(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_ctl_reg(imm5))
+
+
+    def ret(self, rA, rB, rC, imm5):
+        self.pc = self.get_reg(31)
+
+    def rotate32(self, n, m):
+        r = np.uint64(n) << (m & 0x1f)
+        return np.uint32(r) | np.uint32(r >> 32)
+
+    def rotate_r32(self, n, m):
+        # Put 32 bits of 0s to the right of our number (as a 64-bit number):
+        r = np.uint64(n) << 32
+        # then shift it m bits to the right.
+        r >>= (m & 0x1f)
+        # things in 63..32 are our "right most" bits, and things in 31..0 are the upper bits
+        return np.uint32(r>>32) | np.uint32(r)
+
+    def rol(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.rotate32(self.get_reg(rA), (self.get_reg(rB) & 0x1f)))
+
+    def roli(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.rotate32(self.get_reg(rA), imm5))
+
+    def ror(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.rotate_r32(self.get_reg(rA), (self.get_reg(rB) & 0x1f)))
+
+    #def rori(self, rA, rB, rC, imm5):
+    #    self.set_reg(rC, self.rotate_r32(self.get_reg(rA), imm5))
+
+    def sll(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) << (self.get_reg(rB) & 0x1f))
+
+    def slli(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) << imm5)
+
+    def sra(self, rA, rB, rC, imm5):
+        self.set_reg(rC, np.int32(self.get_reg(rA)) >> (self.get_reg(rB) & 0x1f))
+
+    def srai(self, rA, rB, rC, imm5):
+        self.set_reg(rC, np.int32(self.get_reg(rA)) >> imm5)
+
+
+    def srl(self, rA, rB, rC, imm5):
+        self.set_reg(rC, np.uint32(self.get_reg(rA)) >> (self.get_reg(rB) & 0x1f))
+
+    def srli(self, rA, rB, rC, imm5):
+        self.set_reg(rC, np.uint32(self.get_reg(rA)) >> imm5)
+
+    def sub(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) - self.get_reg(rB))
+
+    def sync(self, rA, rB, rC, imm5):
+        pass
+
+    def trap(self, rA, rB, rC, imm5):
+        #estatus = status
+        # PIE = 0
+        # U = 0
+        # ea = PC (+4)
+        # PC = exception handler
+        pass
+    def wrctl(self, rA, rB, rC, imm5):
+        self.set_ctl_reg(imm5, self.get_reg(rA))
+
+    def wrprs(self, rA, rB, rC, imm5):
+        pass
+
+    def xor(self, rA, rB, rC, imm5):
+        self.set_reg(rC, self.get_reg(rA) ^ self.get_reg(rB))
+
+
     def rtype(self, opx, rA, rB, rC, imm5=0):
-        
-        pass
+        d = {0x01: self.eret,
+             0x02: self.roli,
+             0x03: self.rol,
+             0x04: self.flushp,
+             0x05: self.ret,
+             0x06: self.nor,
+             0x07: self.mulxuu,
+             0x08: self.cmpge,
+             0x09: self._bret,
+             0x0b: self.ror,
+             0x0c: self.flushi,
+             0x0d: self.jmp,
+             0x0e: self._and,
+             0x10: self.cmplt,
+             0x12: self.slli,
+             0x13: self.sll,
+             0x14: self.wrprs,
+             0x16: self._or,
+             0x17: self.mulxsu,
+             0x18: self.cmpne,
+             0x1a: self.srli,
+             0x1b: self.srl,
+             0x1c: self.nextpc,
+             0x1d: self.callr,
+             0x1e: self.xor,
+             0x1f: self.mulxss,
+             0x20: self.cmpeq,
+             0x24: self.divu,
+             0x25: self.div,
+             0x27: self.mul,
+             0x28: self.cmpgeu,
+             0x29: self.initi,
+             0x2d: self.trap,
+             0x2e: self.wrctl,
+             0x30: self.cmpltu,
+             0x31: self.add,
+             0x34: self._break,
+             0x36: self.sync,
+             0x39: self.sub,
+             0x3a: self.srai,
+             0x3b: self.sra,
+             }
+        d[opx](rA, rB, rC, imm5)
 
-
+    ###############################
+    # J-type
+    ###############################
     def call(self, imm26):
-        pass
+        self.set_reg(31, self.pc) # Set ra = PC (+4)
+        self.pc = (self.pc & np.uint32(0xf0000000)) | np.uint32(imm26 << 2)
+
     def jmpi(self, imm26):
         self.pc = (self.pc & np.uint32(0xf0000000)) | np.uint32(imm26 << 2)
+
     def rdprs(self, imm26):
-        pass
-
-
-    def jtype(self, op, imm26):
         pass
 
 
@@ -269,11 +517,21 @@ class Nios2(object):
 
 
 
-    def print_regs(self):
+    def print_regs(self, n_regs=32):
         print(' pc 0x%08x' % (self.pc))
-        for r in range(32):
+        for r in range(n_regs):
             print('% 3s 0x%08x' % ('r%d'%r, self.regs[r]))
 
+
+    def dump_mem(self, addr_min, byte_len, words=True):
+        s = addr_min & 0xfffffffc
+        for addr in range(s, s+byte_len, 4):
+            if (addr & 0xf) == 0:
+                print('\n0x%08x: ' % addr, end='')
+
+            word, = struct.unpack('<I', self.mem[addr:addr+4])
+            print('%08x  ' % word, end='')
+        print('')
 
 
 
@@ -301,10 +559,20 @@ _start:
 '''
 
 if __name__ == '__main__':
-    prog = bytes.fromhex('00c0014419000084217fffc41980004c41414141000000010000000500000009')
+    #prog = bytes.fromhex('00c0014419000084217fffc41980004c41414141000000010000000500000009')
+    #prog = bytes.fromhex('010000342100100401400034294015040180003431801a04318000170180060e21c0001729c00015210001042940010431bfffc4003ff906003da03a003ffe0600000003000000080000000affffffff4142434400000005')
+    prog = bytes.fromhex('010000342100100401400034294015040180003431801a04318000170180060e21c0001729c00015210001042940010431bfffc4003ff906003da03a003ffe0600000003000000080000000affffffff41424344000000000000000000000000000000000000000000000005')
+    prog = bytes.fromhex('010000342100100401400034294015040180003431801a04318000170180060e21c0001729c00015210001042940010431bfffc4003ff906003da03a003ffe0600000003000000080000000affffffff41424344000000000000000000000000000000000000000000000005')
     cpu = Nios2(init_mem=flip_word_endian(prog))
-    cpu.one_step()
-    cpu.one_step()
-    cpu.one_step()
-    cpu.one_step()
+    cpu.dump_mem(0x00, 0x100)
+
+    inst = 0
+    while not(cpu.halted):
+        print('===============')
+        print('  Instruction %d' % inst)
+        cpu.print_regs(9)
+        cpu.one_step()
+        inst += 1
+
     cpu.print_regs()
+    cpu.dump_mem(0x00, 0x100)
