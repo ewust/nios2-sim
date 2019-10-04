@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main role="main" class="container">
+    <div class="my-3 p-3 bg-white rounded box-shadow">
+        <h2>Exercises</h2>
+        {% for eid, ex in exercises.items() %}
+            {% if ex.public %}
+                <a href="/nios2/examples/{{ eid }}">{{ ex.title }}</a>
+                {% if ex.diff=='easy' %}
+                    <span class="label label-success">easy</span>
+                {% elif ex.diff=='medium' %}
+                    <span class="label label-warning">medium</span>
+                {% elif ex.diff=='hard' %}
+                    <span class="label label-danger">hard</span>
+                {% endif %}
+                <br/>
+            {% endif %}
+        {% endfor %}
+
+    </div>
+</main>
+{% endblock %}
+

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ECEN 3350: Programming Digital Systems</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="//ecen3350.rocks/static/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="//ecen3350.rocks/static/codemirror.css" rel="stylesheet">
+    <link href="//ecen3350.rocks/static/css/custom.css" rel="stylesheet" media="screen">
+  </head>
+  <body style="background-color: #f8f9fa!important">
+    <div id="wrap">
+      <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="./">ECEN&nbsp;3350</a>
+          </div>
+          <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+              <li><a href="/">Overview</a></li>
+              <li><a href="/schedule.html">Schedule</a></li>
+              <li><a href="/assignments.html">Assignments</a></li>
+              <li><a href="https://moodle.cs.colorado.edu/mod/lti/view.php?id=41298">Piazza</a></li>
+              <li><a href="https://moodle.cs.colorado.edu/course/view.php?id=1258">Moodle</a></li>
+			  <li class="active"><a href="/nios2/examples/">Nios2 Exercises</a></li>
+              <!--<li><a href="">Gradescope</a></li>-->
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+              <li><a href="https://ecee.colorado.edu/" style="padding:12px 0;"><img src="/static/logo.png" height=36 /></a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    {% block content %}{% endblock %}
+
+    </div>
+    <script src="//ecen3350.rocks/static/js/jquery-3.4.1.min.js"></script>
+    <script src="//ecen3350.rocks/static/js/bootstrap.min.js"></script>
+    <script src="//ecen3350.rocks/static/codemirror.js"></script>
+    {% block foot %}{% endblock %}
+ </body>
+</html>

@@ -14,16 +14,6 @@ import numpy as np
 
 app = application = default_app()
 
-@app.route('/nios2/')
-def nios2():
-    return '''
-<html>
-<body>
-<form action="/nios2/as" method="POST">
-<textarea name="asm"></textarea><br/>
-<input type="submit" value="Submit"/></form>
-</body></html>'''
-
 
 
 def nios2_as(asm):
@@ -182,7 +172,9 @@ exercises = {
     ###############
     # Find Minimum
     'find-min': {
-        'title': 'Find minimum in an array',
+        'public': True,
+        'diff': 'easy',
+        'title': 'Find the minimum value in an array',
         'desc': '''For a given array of words starting at ARR for length N,
                    find the lowest signed value in the array. Write the value
                    to the word MIN in memory, and then call the <code>break</code>
@@ -200,7 +192,9 @@ ARR: .word 5, -8, -1, 12, 6
     ##############
     # Sum the array
     'sum-array': {
+        'public': True,
         'title': 'Array Sum',
+        'diff':  'easy',
         'desc': '''You are given an array of signed words starting at ARR for length N.
                    Find the sum of all the positive integers, and write the value to the word
                    SUM in memory, then call the <code>break</code> instruction.''',
@@ -272,6 +266,12 @@ def post_example(eid):
             'feedback': feedback,
             'success': success,
             }
+
+@get('/nios2')
+@jinja2_view('index.html')
+def nios2():
+    return {'exercises': exercises}
+
 
 
 debug(True)
