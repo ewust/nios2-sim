@@ -71,11 +71,7 @@ def require_symbols(obj, symbols):
     return None
 
 # Returns (correct_bool, feedback)
-
 def check_find_min(obj):
-
-    symbols = obj['symbols']
-
     r = require_symbols(obj, ['MIN', 'ARR'])
     if r is not None:
         return (False, r)
@@ -446,12 +442,7 @@ def post_example(eid):
                 'exercise_desc':  ex['desc'],\
                 'asm_error': 'No _start in your code (did you forget to enter instructions?)<br/>%s' % (json.dumps(obj)),}
 
-
     success, feedback = ex['checker'](obj)
-
-
-    #success, feedback = ex['checker'](cpu, obj['symbols'])
-
 
     return {'eid': eid,
             'exercise_code': asm,
@@ -465,7 +456,6 @@ def post_example(eid):
 @jinja2_view('index.html')
 def nios2():
     return {'exercises': exercises}
-
 
 
 debug(True)
