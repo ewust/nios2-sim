@@ -4,18 +4,43 @@ import struct
 import sys
 
 class Nios2(object):
-    def __init__(self, init_mem=b'', start_pc=0):
-        self.regs = [np.uint32(0)]*32
-        self.pc = np.uint32(start_pc)
-        self.mem = bytearray(init_mem + (64*1024*1024 - len(init_mem))*b'\xaa')
-        self.ctls_regs = [np.uint32(0)]*32
-        self.halted = False
+
+    class MMIO_Reg(object):
+        def __init__(self, init_val=np.uint32(0)):
+            self.val = init_val
+        def store(self, val):
+            self.val = val
+        def load(self):
+            return self.val
+        def access(self, val=None):
+            if val is None:
+                return self.load()
+            self.store(val)
+
+    def __init__(self, init_mem=b'', start_pc=0, obj=None):
+        if obj is not None:
+            self.obj = obj
+            self.symbols = obj['symbols']
+            init_mem = flip_word_endian(bytes.fromhex(obj['prog']))
+            start_pc = obj['symbols']['_start']
+
+        self.init_mem = init_mem
+        self.init_pc = start_pc
+
         # map of addr => handling function for mmios
         self.mmios = {
                 0xFF200000: self.mmio_led,
                 0xFF200040: self.mmio_sw,
                 }
+        self.reset()
 
+
+    def reset(self):
+        self.regs = [np.uint32(0)]*32
+        self.pc = np.uint32(self.init_pc)
+        self.mem = bytearray(self.init_mem + (64*1024*1024 - len(self.init_mem))*b'\xaa')
+        self.ctls_regs = [np.uint32(0)]*32
+        self.halted = False
 
     # 0xFF200000
     def mmio_led(self, value=None):
@@ -23,9 +48,20 @@ class Nios2(object):
             return 0x0
         print('Set LEDs to 0x%08x' % value)
 
+    def new_rw_reg(self, init_val=np.uint32(0)):
+        return Nios2.MMIO_Reg(init_val)
+
+
     def mmio_sw(self, value=None):
         if value is None:
             return 0x2aa # example switches
+
+    def get_symbol_word(self, symbol, offset=0):
+        return self.loadword(self.symbols[symbol] + offset)
+
+    def write_symbol_word(self, symbol, val, offset=0):
+        self.storeword(self.symbols[symbol] + offset, val)
+
 
     ########################
     # Loads and stores
@@ -267,6 +303,7 @@ class Nios2(object):
         if op not in d:
             self.halted = True
             self.error = 'Invalid instruction opcode: 0x%08x' % (self.loadword(self.pc))
+            return
         d[op](rA, rB, offset)
 
 
@@ -544,23 +581,47 @@ class Nios2(object):
                 self.itype(op, rA, rB, imm16)
 
 
+    def run_until_halted(self, instr_limit=None):
+        instr = 0
+        while not(self.halted) and (instr_limit is None or instr < instr_limit):
+            self.one_step()
+            instr += 1
+        return instr
+
+
+    def get_regs(self, n_regs=32):
+        out = ' pc 0x%08x\n' % (self.pc)
+        for r in range(n_regs):
+            out += '% 3s 0x%08x\n' % ('r%d'%r, self.regs[r])
+        return out
 
     def print_regs(self, n_regs=32):
-        print(' pc 0x%08x' % (self.pc))
-        for r in range(n_regs):
-            print('% 3s 0x%08x' % ('r%d'%r, self.regs[r]))
+        print(self.get_regs(n_regs))
 
-
+    # returns a string hexdump of memory starting at addr_min
+    # to addr_min+byte_len
+    # displays in words or bytes depedning on if words=True or False (TODO)
     def dump_mem(self, addr_min, byte_len, words=True):
         s = addr_min & 0xfffffffc
+        out = ''
         for addr in range(s, s+byte_len, 4):
+
+            # Print address at beginning of row
             if (addr & 0xf) == 0:
-                print('\n0x%08x: ' % addr, end='')
+                out += '\n0x%08x: ' % addr
 
             word, = struct.unpack('<I', self.mem[addr:addr+4])
-            print('%08x  ' % word, end='')
-        print('')
+            out += '%08x  ' % word
+        out += '\n'
+        return out
 
+    def dump_symbols(self):
+        out = ''
+        max_sym_len = max([len(s) for s,v in self.symbols.items()])
+        fmt = '%% %ds: 0x%%08x\n' % max_sym_len
+        for s,v in sorted(self.symbols.items(), key=lambda x: x[1]):
+            out += fmt % (s, v)
+        return out
 
 
 def flip_word_endian(s):
@@ -628,7 +689,7 @@ if __name__ == '__main__':
 
     prog = bytes.fromhex(test_prog)
     cpu = Nios2(init_mem=flip_word_endian(prog), start_pc=start_pc)
-    cpu.dump_mem(0x00, 0x100)
+    print(cpu.dump_mem(0x00, 0x100))
 
     inst = 0
     while not(cpu.halted):
@@ -640,4 +701,4 @@ if __name__ == '__main__':
     print('===========')
     print('%d instructions' % inst)
     cpu.print_regs()
-    cpu.dump_mem(0x00, 0x100)
+    print(cpu.dump_mem(0x00, 0x100))

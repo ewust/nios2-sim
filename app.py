@@ -64,107 +64,229 @@ def post_as():
     return json.dumps(nios2_as(asm.encode('utf-8')))
 
 
+def require_symbols(obj, symbols):
+    for s in symbols:
+        if s not in obj['symbols']:
+            return '%s not found in memory (did you enter any instructions?)' % (s)
+    return None
+
 # Returns (correct_bool, feedback)
 
 def check_find_min(obj):
 
     symbols = obj['symbols']
 
-    if 'MIN' not in symbols:
-        return (False, 'MIN not found in memory (did you enter any instructions?)')
-    if 'ARR' not in symbols:
-        return (False, 'ARR not found in memory (did you enter any instructions?)')
+    r = require_symbols(obj, ['MIN', 'ARR'])
+    if r is not None:
+        return (False, r)
 
     feedback = ''
-    ##########
-    # Test case 1: run what ya got
-    cpu = Nios2(init_mem=flip_word_endian(bytes.fromhex(obj['prog'])),
-                start_pc=obj['symbols']['_start'])
-    inst = 0
-    while not(cpu.halted) and inst < 10000:
-        cpu.one_step()
-        inst += 1
 
-    their_ans = np.int32(cpu.loadword(symbols['MIN']))
-    if their_ans != -8:
-        feedback += 'Failed test case 1: MIN should be -8 (0xfffffff8) for testcase 5,-8,-1,12,6. Your code produced MIN=0x%08x' % np.uint32(their_ans)
-        return (False, feedback)
+    test_cases = [
+        ([5, 3, 9, 2], 2),
+        ([5, -8, 1, 12, 6], -8),
+        ]
 
-    feedback += 'Passed test case 1<br/>\n'
+    cpu = Nios2(obj=obj)
 
-    # Reset
-    cpu = Nios2(init_mem=flip_word_endian(bytes.fromhex(obj['prog'])),
-                start_pc=obj['symbols']['_start'])
-    ##########
-    # Test case 2: 5,3,9,2
-    arr = symbols['ARR']
-    test_case = [5, 3, 9, 2, 0, 0, 0]
-    for i in range(len(test_case)):
-        cpu.storeword(arr+i*4, test_case[i])
-    cpu.storeword(symbols['N'], 4)
-    inst = 0
-    while not(cpu.halted) and inst < 10000:
-        cpu.one_step()
-        inst += 1
+    cur_test = 1
+    for arr, ans in test_cases:
 
-    their_ans = np.uint32(cpu.loadword(symbols['MIN']))
-    if their_ans != 2:
-        feedback += 'Failed test case 2: MIN should be 2 (0x00000002) for testcase 5,3,9,2. Your code produced MIN=0x%08x' % np.uint32(their_ans)
-        return (False, feedback)
+        # Reset and initialize
+        cpu.reset()
+        for i, val in enumerate(arr):
+            cpu.write_symbol_word('ARR', np.uint32(val), offset=i*4)
+        cpu.write_symbol_word('N', len(arr))
 
-    feedback += 'Passed test case 2<br/>\n'
+        # Run
+        instrs = cpu.run_until_halted(10000)
+
+        # Check answer
+        their_ans = np.int32(cpu.get_symbol_word('MIN'))
+        if their_ans != ans:
+            feedback += 'Failed test case %d: ' % (cur_test)
+            feedback += 'MIN should be %d (0x%08x) for ARR %s. ' % (ans, np.uint32(ans), arr)
+            feedback += 'Your code produced MIN=0x%08x' % np.uint32(their_ans)
+            feedback += '<br/><br/>Memory:<br/><pre>'
+            feedback += cpu.dump_mem(0, 0x100)
+            feedback += '\nSymbols:\n' + cpu.dump_symbols()
+            feedback += '</pre>'
+
+            return (False, feedback)
+
+        feedback += 'Passed test case %d<br/>\n' % (cur_test)
+        cur_test += 1
 
     return (True, feedback)
-
 
 def check_array_sum(obj):
+    r = require_symbols(obj, ['SUM', 'ARR'])
+    if r is not None:
+        return (False, r)
 
-    symbols = obj['symbols']
+    test_cases = [
+        ([5, 3, 9, 2], 19),
+        ([5, -8, 1, 12, 6], 24),
+        ([1, -8, -1, 0, 1, 1], 3),
+        ]
 
-    if 'SUM' not in symbols:
-        return (False, 'SUM not found in memory (did you enter any instructions?)')
-    if 'ARR' not in symbols:
-        return (False, 'ARR not found in memory (did you enter any instructions?)')
+    cpu = Nios2(obj=obj)
 
-    feedback = ''
-    ##########
-    # Test case 1: run what ya got
-    cpu = Nios2(init_mem=flip_word_endian(bytes.fromhex(obj['prog'])),
-                start_pc=obj['symbols']['_start'])
-    cpu.dump_mem(0, 0x80)
-    inst = 0
-    while not(cpu.halted) and inst < 10000:
-        cpu.one_step()
-        inst += 1
+    cur_test = 1
+    for arr, ans in test_cases:
 
-    their_ans = np.int32(cpu.loadword(symbols['SUM']))
-    if their_ans != 63:
-        feedback += 'Failed test case 1: SUM should be 63 (0x0000003f) for testcase 1. Your code produced SUM=0x%08x' % np.uint32(their_ans)
-        return (False, feedback)
+        # Reset and initialize
+        cpu.reset()
+        for i, val in enumerate(arr):
+            cpu.write_symbol_word('ARR', np.uint32(val), offset=i*4)
+        cpu.write_symbol_word('N', len(arr))
 
-    feedback += 'Passed test case 1<br/>\n'
+        # Run
+        instrs = cpu.run_until_halted(10000)
 
-    cpu = Nios2(init_mem=flip_word_endian(bytes.fromhex(obj['prog'])),
-                start_pc=obj['symbols']['_start'])
-    arr = symbols['ARR']
-    test_case = [5, 3, 9, 2, -1, 0, 0]
-    for i in range(len(test_case)):
-        cpu.storeword(arr+i*4, np.uint32(np.int32(test_case[i])))
-    cpu.storeword(symbols['N'], 5)
-    inst = 0
-    while not(cpu.halted) and inst < 10000:
-        cpu.one_step()
-        inst += 1
+        # Check answer
+        their_ans = np.uint32(cpu.get_symbol_word('SUM'))
+        if their_ans != ans:
+            feedback += 'Failed test case %d: ' % (cur_test)
+            feedback += 'SUM should be %d (0x%08x) for ARR %s. ' % (ans, np.uint32(ans), arr)
+            feedback += 'Your code produced SUM=0x%08x' % np.uint32(their_ans)
+            feedback += '<br/><br/>Memory:<br/><pre>'
+            feedback += cpu.dump_mem(0, 0x100)
+            feedback += '\nSymbols:\n' + cpu.dump_symbols()
+            feedback += '</pre>'
 
-    their_ans = np.uint32(cpu.loadword(symbols['SUM']))
-    if their_ans != 19:
-        feedback += 'Failed test case 2: SUM should be 19 (0x00000013) for testcase 5,3,9,2,-1 Your code produced MIN=0x%08x' % np.uint32(their_ans)
-        return (False, feedback)
+            return (False, feedback)
 
-    feedback += 'Passed test case 2<br/>\n'
+        feedback += 'Passed test case %d<br/>\n' % (cur_test)
+        cur_test += 1
 
     return (True, feedback)
 
+
+
+def get_debug(cpu, mem_len=0x100):
+    out = ''
+    out += '<br/><br/>Memory:<br/><pre>'
+    out += cpu.dump_mem(0, mem_len)
+    out += '\nSymbols:\n' + cpu.dump_symbols()
+    out += '</pre>'
+    return out
+
+
+
+def check_led_on(obj):
+    cpu = Nios2(obj=obj)
+
+
+    # Make a MMIO rw/register
+    leds = Nios2.MMIO_Reg()
+    # Set the cpu's LED MMIO callback to that reg's access function
+    cpu.mmios[0xFF200000] = leds.access
+
+    instrs = cpu.run_until_halted(10000)
+
+    feedback = ''
+    if (leds.load() & 0x3ff) != 0x3ff:
+        feedback += 'Failed test case 1: '
+        feedback += 'LEDs are set to %s (should be %s)' % (bin(leds.load()&0x3ff), bin(0x3ff))
+        feedback += get_debug(cpu)
+        return (False, feedback)
+
+    return (True, 'Passed test case 1')
+
+
+def check_proj1(obj):
+    cpu = Nios2(obj=obj)
+
+    class p1grader(object):
+        def __init__(self, test_cases=[]):
+            # Array of (sw_val, expected_led_val)
+            self.test_cases = test_cases
+            self.cur_test = 0
+            self.feedback = ''
+            self.passed = True
+
+        def write_led(self, val):
+            # Assert correct answer
+            sw, expected = self.test_cases[self.cur_test]
+            if (val&0x3ff) != expected:
+                self.feedback += 'Failed test case %d: ' % (self.cur_test+1)
+                self.feedback += 'LEDs set to %s (should be %s) for SW %s' % \
+                                (bin(val&0x3ff), bin(expected), bin(sw))
+                self.feedback += get_debug(cpu)
+                self.passed = False
+                cpu.halted = True
+                return
+            self.feedback += 'Passed test case %d<br/>\n' % (self.cur_test+1)
+            self.cur_test += 1
+            if self.cur_test >= len(self.test_cases):
+                cpu.halted = True
+
+        def read_sw(self):
+            sw, led = self.test_cases[self.cur_test]
+            return sw
+
+    tests = [(0, 0),
+            (0b0000100001, 2),
+            (0b0001100010, 5),
+            (0b1011101110, 37),
+            (0b1111111111, 62),
+            (0b1111011111, 61),
+            (0b0000111111, 32)]
+
+    p1 = p1grader(tests)
+
+    cpu.mmios[0xFF200000] = p1.write_led
+    cpu.mmios[0xFF200040] = p1.read_sw
+
+    instrs = cpu.run_until_halted(10000)
+
+    return (p1.passed, p1.feedback)
+
+
+def check_list_sum(obj):
+    r = require_symbols(obj, ['SUM', 'HEAD'])
+    if r is not None:
+        return (False, r)
+
+    cpu = Nios2(obj=obj)
+
+
+    tests = [([3, 2, 1], 6),
+             ([1, 0, 4], 5),
+             ([-1, 2, 15, 8, 6], 30)]
+
+    head_addr = obj['symbols']['HEAD']
+
+    feedback = ''
+
+    cur_test = 1
+    for tc,ans in tests:
+        cpu.reset()
+        for ii,n in enumerate(tc):
+
+            next_ptr = head_addr + (ii+1)*8
+            if ii == len(tc)-1:
+                # Last element, write null for pointer
+                next_ptr = 0
+            cpu.storeword(head_addr+ii*8, next_ptr)
+            cpu.storeword(head_addr+ii*8+4, np.uint32(n))
+
+        instrs = cpu.run_until_halted(10000)
+
+        their_ans = np.int32(cpu.get_symbol_word('SUM'))
+        if their_ans != ans:
+            feedback += 'Failed test case %d: ' % cur_test
+            feedback += 'SUM was %d (0x%08x), should be %d (0x%08x)' % \
+                    (their_ans, np.uint32(their_ans), ans, np.uint32(ans))
+            feedback += get_debug(cpu)
+            return (False, feedback)
+
+        feedback += 'Passed test case %d<br/>\n' % cur_test
+
+        cur_test += 1
+
+    return (True, feedback)
 
 
 
@@ -175,14 +297,17 @@ exercises = {
         'public': True,
         'diff': 'easy',
         'title': 'Find the minimum value in an array',
-        'desc': '''For a given array of words starting at ARR for length N,
-                   find the lowest signed value in the array. Write the value
-                   to the word MIN in memory, and then call the <code>break</code>
-                   instruction.''',
+        'desc': '''You are given an array of words starting at <code>ARR</code>,
+                    that contains <code>N</code> words in it.<br/>
+                    <br/>
+                    Your task is to write code to find the <b>lowest</b> signed value in the
+                    array. Write the value to the word <code>MIN</code> in memory, and then
+                    call the <code>break</code> instruction.''',
         'code': '''.text
 _start:
 
 .data
+# Make sure ARR is the last label in .data
 MIN: .word 0
 N:   .word 5
 ARR: .word 5, -8, -1, 12, 6
@@ -195,18 +320,87 @@ ARR: .word 5, -8, -1, 12, 6
         'public': True,
         'title': 'Array Sum',
         'diff':  'easy',
-        'desc': '''You are given an array of signed words starting at ARR for length N.
-                   Find the sum of all the positive integers, and write the value to the word
-                   SUM in memory, then call the <code>break</code> instruction.''',
+        'desc': '''You are given an array of signed words starting at <code>ARR</code> for length <code>N</code> words.
+                   <br/><br/>
+                   Find the sum of all the <b>positive</b> integers, and write the value to the word
+                   <code>SUM</code> in memory, then call the <code>break</code> instruction.''',
         'code':'''.text
 _start:
 
 .data
+# Make sure ARR is the last label in .data
 SUM: .word 0
 N:   .word 6
 ARR: .word 14, 22, 0, -9, -12, 27
 ''',
         'checker': check_array_sum
+    },
+    ##########
+    # Set the LEDs to all on
+    'led-on': {
+        'public': True,
+        'title': 'Set LEDs on',
+        'diff':  'easy',
+        'desc': '''Turn on all 10 LEDs on the DE10-Lite, then call the <code>break</code> instruction.<br/><br/>
+                    Hint: the LED MMIO address is <code>0xFF200000</code>''',
+        'code':'''.text
+_start:
+''',
+        'checker': check_led_on
+    },
+    ###########
+    # Project 1
+    'proj1': {
+        'public': True,
+        'title': 'Project 1',
+        'diff': 'medium',
+        'desc': '''Project 1 adder.s''',
+        'code':'''.text
+_start:
+    movia   r4, 0xFF200000
+    movia   r5, 0xFF200040
+
+loop:
+    ldwio   r6, 0(r5)
+
+
+    stwio   r6, 0(r4)
+    br      loop
+''',
+        'checker': check_proj1
+    },
+    ##########
+    # Linked list sum
+    'list-sum': {
+        'public': True,
+        'title': 'Sum a Linked List',
+        'diff':  'medium',
+        'desc': '''You are given a linked list node at addr <code>HEAD</code>.
+                   Each list node consists of a word <code>next</code> that points to
+                   the next node in the list, followed by a word <code>value</code>. The last
+                   node in the list has its <code>next</code> pointer set to 0 (NULL).<br/><br/>
+
+                   You can think of each node as being equivalent to the following C struct:<br/>
+<pre>struct node {
+    struct node *next;
+    int          value;
+};</pre><br/><br/>
+
+                   Your task is to find the sum of all the <code>value</code>s in the list,
+                   and write this sum to <code>SUM</code>,
+                   then call the <code>break</code> instruction''',
+        'code':'''.text
+_start:
+
+
+.data
+SUM:    .word 0
+HEAD:   .word N1, 5
+N1:     .word N2, 3
+N2:     .word N3, 10
+N3:     .word 0,  6
+''',
+        'checker': check_list_sum
     },
 
 }
