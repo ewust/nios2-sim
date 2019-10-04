@@ -1,5 +1,6 @@
 # nios2-sim
 
+A simple simulator for Nios2 written in Python. Also includes an "autograder" for some example exercise problems to help students new to assembly.
 
 ### Installing
 ---
