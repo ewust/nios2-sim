@@ -27,12 +27,12 @@ Submitted solutions are first assembled (uisng `bin/nios2-elf-as`) and linked (u
 Each exercise is taken from the `exercises` dictionary in app.py (TODO: put somewhere more sane). Each exercise has an ID (eid) which is the key in the dictionary (e.g. `list-sum`). This key is used in the URL for the exercise (e.g. /nios2/examples/list-sum).
 
 The values in the exercises dictionary are themselves a dictionary of:
-- public: set True if the exercise should be listed in the index
-- diff: Difficulty of the problem (e.g. easy, medium, hard)
-- title: The name of the exercise
-- desc: The HTML description for the exercise.
-- code: Initial code to be given.
-- checker: A function that will be used to verify the program.
+- `public`: set True if the exercise should be listed in the index
+- `diff`: Difficulty of the problem (e.g. easy, medium, hard)
+- `title`: The name of the exercise
+- `desc`: The HTML description for the exercise.
+- `code`: Initial code to be given.
+- `checker`: A function that will be used to verify the program.
 
 If you add an exercise, you will need to create a new element in the exercises dictionary, and define a custom checker function.
 
