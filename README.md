@@ -39,9 +39,9 @@ If you add an exercise, you will need to create a new element in the exercises d
 ### Checker Functions
 ---
 
-Checker functions take one argument: a JSON object of the assembled program (produced by `nios2\_as`). The checker function must return a tuple `(success, feedback)`, with `success` set to True if all test cases passed, and False otherwise. `feedback` is a string carrying information on failed test cases / dbug help.
+Checker functions take one argument: a JSON object of the assembled program (produced by `nios2_as`). The checker function must return a tuple `(success, feedback)`, with `success` set to True if all test cases passed, and False otherwise. `feedback` is a string carrying information on failed test cases / dbug help.
 
-The CPU is simulated using a custom nios2 CPU (sim.py), instantiated by `cpu = Nios2(obj=obj)`. The CPU can be executed to completion, breakpoint, error, or 1000 instructions (whichever occurs first) by `cpu.run\_until\_halted(1000)`.
+The CPU is simulated using a custom nios2 CPU (sim.py), instantiated by `cpu = Nios2(obj=obj)`. The CPU can be executed to completion, breakpoint, error, or 1000 instructions (whichever occurs first) by `cpu.run_until_halted(1000)`.
 
 For multiple test cases, you can reset the cpu with `cpu.reset()`, which will reset the memory to the inital program (provided by the JSON object). If a test case fails, you probably want to provide a reason, and as much info as possible; it can be helpful to print out memory and symbol mapping (see the `get_debug()` function).
 
@@ -52,7 +52,7 @@ The simulator is designed to be accessible from the outside: registers (`get_reg
 
 MMIO devices can be simulated: each address can be added to the `cpu.mmios` dictionary, with the MMIO address as the key, and the value a callback function that is called when the address is accessed (e.g. ldwio/stwio). The callback function is given either a value (if it's a store) or None (if it's a load).
 
-If you only want a read/write register at the address, you can create a `Nios2.MMIO\_Reg()` which will have an `access` method that can be given to the dictionary:
+If you only want a read/write register at the address, you can create a `Nios2.MMIO_Reg()` which will have an `access` method that can be given to the dictionary:
 
 ```python
 leds = Nios2.MMIO_Reg()
