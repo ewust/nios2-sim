@@ -205,14 +205,20 @@ def check_proj1(obj):
         def write_led(self, val):
             # Assert correct answer
             sw, expected = self.test_cases[self.cur_test]
-            if (val&0x3ff) != expected:
-                self.feedback += 'Failed test case %d: ' % (self.cur_test+1)
-                self.feedback += 'LEDs set to %s (should be %s) for SW %s' % \
+            if val != expected: # Check that they wrote to LEDs exactly
+                if (val&0x3ff) != expected: # only warn if the LEDs would have masked for them..
+
+                    self.feedback += 'Failed test case %d: ' % (self.cur_test+1)
+                    self.feedback += 'LEDs set to %s (should be %s) for SW %s' % \
                                 (bin(val&0x3ff), bin(expected), bin(sw))
-                self.feedback += get_debug(cpu)
-                self.passed = False
-                cpu.halted = True
-                return
+                    self.feedback += get_debug(cpu)
+                    self.passed = False
+                    cpu.halted = True
+                    return
+                self.feedback += 'Test case %d: ' %(self.cur_test+1)
+                self.feedback += 'Warning: wrote 0x%08x (instead of 0x%08x) to LEDs for SW %s;' %\
+                                (val, expected, bin(sw))
+                self.feedback += ' upper bits ignored.\n'
             self.feedback += 'Passed test case %d<br/>\n' % (self.cur_test+1)
             self.cur_test += 1
             if self.cur_test >= len(self.test_cases):

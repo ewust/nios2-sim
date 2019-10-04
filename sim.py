@@ -432,7 +432,7 @@ class Nios2(object):
 
     def rotate_r32(self, n, m):
         # Put 32 bits of 0s to the right of our number (as a 64-bit number):
-        r = np.uint64(n) << 32
+        r = n << 32
         # then shift it m bits to the right.
         r >>= (m & 0x1f)
         # things in 63..32 are our "right most" bits, and things in 31..0 are the upper bits
