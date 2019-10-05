@@ -134,7 +134,7 @@ class Nios2(object):
         self.set_reg(rB, self.get_reg(rA) & offset)
 
     def andhi(self, rA, rB, offset):
-        self.set_reg(rB, self.get_reg(rB) & np.uint32(offset << 16))
+        self.set_reg(rB, self.get_reg(rA) & np.uint32(offset << 16))
 
     def inc_pc16(self, offset):
         self.pc = np.uint32(self.pc + np.int16(offset))
