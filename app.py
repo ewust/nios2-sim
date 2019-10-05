@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, os, bottle
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view
+from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file
 import tempfile
 import subprocess
 from sim import Nios2, flip_word_endian
@@ -523,6 +523,12 @@ def post_moodle(eid,uid):
 @jinja2_view('index.html')
 def nios2():
     return {'exercises': exercises}
+
+
+
+@route('/nios2/static/<path:path>')
+def serve_static(path):
+    return static_file(path, root="static/")
 
 
 debug(True)

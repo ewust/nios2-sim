@@ -34,9 +34,11 @@
 
 
 {% block foot %}
+    <script src="/nios2/static/codemirror-nios2.js"></script>
     <script>
       var editor = CodeMirror.fromTextArea(document.getElementById('assembly'), {
         lineNumbers: true,
+        mode: {name: "gas", architecture: "nios2"},
       });
         editor.setSize(null, '750px');
     </script>
