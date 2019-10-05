@@ -461,9 +461,9 @@ def get_example(eid):
            }
 
 
-@post('/nios2/examples/<eid>/<tid>')
+@post('/nios2/examples/<eid>')
 @jinja2_view('example.html')
-def post_example(eid, tid):
+def post_example(eid):
     gc.collect()
     asm = request.forms.get('asm')
     obj = nios2_as(asm.encode('utf-8'))
