@@ -2,7 +2,7 @@ from libc.stdint cimport uint32_t, int32_t, uint8_t
 
 
 cdef extern from "nios2.h":
-    unsigned int _new_nios2(const char *mem, size_t mem_len)
+    long _new_nios2(const char *mem, size_t mem_len)
     void _del_nios2(long cpu)
     void _print_mem(long cpu)
     uint32_t _loadword(long cpu, uint32_t addr);
