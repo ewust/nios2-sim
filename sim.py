@@ -36,6 +36,7 @@ class Nios2(object):
 
 
     def reset(self):
+        self.error = ''
         self.regs = [np.uint32(0)]*32
         self.pc = np.uint32(self.init_pc)
         self.mem = bytearray(self.init_mem + (64*1024*1024 - len(self.init_mem))*b'\xaa')
@@ -586,6 +587,8 @@ class Nios2(object):
         while not(self.halted) and (instr_limit is None or instr < instr_limit):
             self.one_step()
             instr += 1
+        if instr == instr_limit:
+            self.error = 'Warning: Reached instruction limit of %d' % instr
         return instr
 
 
@@ -682,13 +685,17 @@ N:   .word 5'''
 if __name__ == '__main__':
     test_prog = '010000342100100401400034294015040180003431801a04318000170180060e21c0001729c00015210001042940010431bfffc4003ff906003da03a003ffe0600000003000000080000000affffffff41424344000000000000000000000000000000000000000000000005'
     start_pc = 0
+    obj = None
     if len(sys.argv) > 1:
+        import json
         test_prog = sys.argv[1]
-    if len(sys.argv) > 2:
-        start_pc = int(sys.argv[2], 16)
+        obj = json.loads(test_prog)
 
-    prog = bytes.fromhex(test_prog)
-    cpu = Nios2(init_mem=flip_word_endian(prog), start_pc=start_pc)
+    cpu = None
+    if obj is not None:
+        cpu = Nios2(obj=obj)
+    else:
+        cpu = Nios2(init_mem=flip_word_endian(test_prog), start_pc=start_pc)
     print(cpu.dump_mem(0x00, 0x100))
 
     inst = 0
@@ -698,6 +705,8 @@ if __name__ == '__main__':
         #cpu.print_regs(9)
         cpu.one_step()
         inst += 1
+        if (inst % 10000) == 0:
+            print(inst)
     print('===========')
     print('%d instructions' % inst)
     cpu.print_regs()
