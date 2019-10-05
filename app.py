@@ -192,7 +192,7 @@ def check_array_sum(obj):
 
 
 
-def get_debug(cpu, mem_len=0x100):
+def get_debug(cpu, mem_len=0x100, show_stack=False):
     out = '<br/>\n'
     err = cpu.get_error()
     if err != None:
@@ -201,6 +201,14 @@ def get_debug(cpu, mem_len=0x100):
     out += cpu.dump_mem(0, mem_len)
     out += '\nSymbols:\n' + cpu.dump_symbols()
     out += '</pre>'
+    if show_stack:
+        sp = cpu.get_reg(27)
+        fp = cpu.get_reg(28)
+        out += '<br/>Stack:<br/><pre>'
+        out += 'sp = 0x%08x\nfp = 0x%08x\n\n' % (sp, fp)
+        diff = 0x04000000 - (sp-0x80)
+        out += cpu.dump_mem(sp-0x80, min(0x100, diff))
+        out += '\n</pre>'
     return out
 
 
@@ -331,6 +339,80 @@ def check_list_sum(obj):
     del cpu
     return (True, feedback)
 
+def check_fib(obj):
+    r = require_symbols(obj, ['N', 'F'])
+    if r is not None:
+        return (False, r)
+
+    cpu = Nios2(obj=obj)
+
+    tests = [(10, 55), (15, 610), (12, 144), (30, 832040)]
+    feedback = ''
+    cur_test = 1
+    for n,ans in tests:
+        cpu.reset()
+        cpu.write_symbol_word('N', n)
+
+        instrs = cpu.run_until_halted(100000000)
+
+        their_ans = cpu.get_symbol_word('F')
+        if their_ans != ans:
+            feedback += 'Failed test case %d: ' % cur_test
+            feedback += 'fib(%d) returned %d, should have returned %d' %\
+                    (n, their_ans, ans)
+            feedback += get_debug(cpu, show_stack=True)
+            del cpu
+            return (False, feedback)
+        feedback += 'Passed test case %d<br/>\n' % cur_test
+        cur_test += 1
+
+    del cpu
+    return (True, feedback)
+
+
+def check_sort(obj):
+    r = require_symbols(obj, ['N', 'SORT'])
+    if r is not None:
+        return (False, r)
+
+    cpu = Nios2(obj=obj)
+
+    tests = [[5, 4, 3, 2, 1],
+             [5, 4, 2, 3, 1],
+             [2, 8, 3, 9, 15, 10],
+             [8, -1, 11, 14, 12, 14, 0],
+             [9, -2, 5, 0, -2, 0, -1, -4, 1, 9, 10, 6, -3, 7, 5, 10, 9, -2, 2, 9, 0, 3, -3, 7, 7, 6, -5, -2, -1, -4]]
+    feedback = ''
+    cur_test = 1
+    tot_instr = 0
+    for tc in tests:
+        cpu.reset()
+        ans = sorted(tc)
+        cpu.write_symbol_word('N', len(tc))
+        for i,t in enumerate(tc):
+            cpu.write_symbol_word('SORT', t, offset=i*4)
+
+        instrs = cpu.run_until_halted(100000000)
+        tot_instr += instrs
+
+        # Read back out SORT
+        their_ans = [np.int32(cpu.get_symbol_word('SORT', offset=i*4)) for i in range(len(tc))]
+
+        if their_ans != ans:
+            feedback += 'Failed test case %d: ' % cur_test
+            feedback += 'Sorting %s<br/>\n' % tc
+            feedback += 'Code provided: %s<br/>\n' % their_ans
+            feedback += 'Correct answer: %s<br/>\n' % ans
+            feedback += get_debug(cpu)
+            del cpu
+            return (False, feedback, None)
+        feedback += 'Passed test case %d<br/>\n' % cur_test
+        cur_test += 1
+    del cpu
+    extra_info = '%d total instructions' % tot_instr
+    return (True, feedback, extra_info)
+
+
 
 
 exercises = {
@@ -445,7 +527,64 @@ N3:     .word 0,  6
 ''',
         'checker': check_list_sum
     },
+    ############
+    # Fib
+    'fibonacci': {
+        'public': True,
+        'title': 'Fibonacci Sequence',
+        'diff':  'medium',
+        'desc':  '''The  Fibonacci Sequence is computed as <code>f(n) = f(n-1) + f(n-2)</code>. We must define two <b>base case</b> values: <code>f(0) = 0</code> and <code>f(1) = 1</code>.<br/><br/>
 
+                Thus, the first values of this sequence are: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, etc.<br/><br/>
+
+                Your task is to write a function <code>fib</code> which takes a single number <code>n</code> and returns <code>f(n)</code> as defined above by the Fibonacci Sequence.''',
+        'code':'''.text
+fib:
+    # Write your code here
+
+    ret
+
+_start:
+    # You should probably test your program!
+    # Feel free to change the value of N, but leave the rest of
+    # this code as is.
+    movia   sp, 0x04000000  # Setup the stack pointer
+    subi    sp, sp, 4
+
+    movia   r4, N
+    ldw     r4, 0(r4)
+
+    call    fib             # fib(N)
+
+    movia   r4, F
+    stw     r2, 0(r4)       # store r2 to F
+    break                   # r2 should be 55 here.
+.data
+N:  .word 10
+F:  .word 0
+''',
+        'checker': check_fib
+    },
+    #########
+    # Sort
+    'sort': {
+        'public': True,
+        'title': 'Sort an array',
+        'diff': 'hard',
+        'desc': '''You are given an array of <b>signed</b> words starting at <code>SORT</code> that contains <code>N</code> words. Your task is to <b>sort</b> this array, overwriting the current array with one that is sorted. Once done, your code should call the <code>break</code> instruction.<br/><br/>
+                We suggest you implement a very simple in-place sort, such as <a href="https://en.wikipedia.org/wiki/Bubble_sort">Bubble sort</a>, but you are welcome to implement any sorting algorithm.''',
+        'code':'''.text
+_start:
+
+
+.data
+N: .word 5
+SORT: .word 8, 3, 7, 2, 9
+# Padding
+.rept 100 .word 0
+.endr''',
+        'checker': check_sort
+    },
 }
 
 
@@ -490,7 +629,15 @@ def post_example(eid):
                 'exercise_desc':  ex['desc'],\
                 'asm_error': 'No _start in your code (did you forget to enter instructions?)<br/>%s' % (json.dumps(obj)),}
 
-    success, feedback = ex['checker'](obj)
+    extra_info = ''
+    res = ex['checker'](obj)
+    if len(res) == 2:
+        success, feedback = res
+    elif len(res) == 3:
+        success, feedback, extra_info = res
+
+    if extra_info is None:
+        extra_info = ''
 
     return {'eid': eid,
             'exercise_code': asm,
@@ -498,6 +645,7 @@ def post_example(eid):
             'exercise_desc':  ex['desc'],
             'feedback': feedback,
             'success': success,
+            'extra_info': extra_info,
             }
 
 @post('/nios2/examples.moodle/<eid>/<uid>')
@@ -517,7 +665,12 @@ def post_moodle(eid,uid):
     if '_start' not in obj['symbols']:
         return 'No _start in your code (did you forget to enter instructions?\n%s' % (json.dumps(obj))
 
-    success, feedback = ex['checker'](obj)
+    #success, feedback = ex['checker'](obj)
+    res = ex['checker'](obj)
+    if len(res) == 2:
+        success, feedback = res
+    elif len(res) == 3:
+        success, feedback, _ = res
 
     return 'Passed(%s): %s\n%s' % (uid, success, feedback)
 
