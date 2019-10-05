@@ -29,12 +29,17 @@ def nios2_as(asm):
                           '-o', obj_f.name],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if p.wait() != 0:
-        return ('Assembler error: %s' % p.stderr.read())
+        ret = 'Assembler error: %s' % p.stderr.read()
+        obj_f.close()
+        asm_f.close()
+        p.stdout.close()
+        p.stderr.close()
+        return ret
+
     asm_f.close()
+    p.stdout.close()
+    p.stderr.close()
 
-
-    p = subprocess.Popen(['cp', obj_f.name, './test.o'])
-    p.wait()
 
     ######### Link
     exe_f = tempfile.NamedTemporaryFile()
@@ -43,19 +48,32 @@ def nios2_as(asm):
                           obj_f.name, '-o', exe_f.name],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE) 
     if p.wait() != 0:
-        return ('Linker error: %s' % p.stderr.read())
-    obj_f.close()
+        ret = 'Linker error: %s' % p.stderr.read()
+        p.stderr.close()
+        p.stdout.close()
+        obj_f.close()
+        return ret
 
-    p = subprocess.Popen(['cp', exe_f.name, './test.out'])
-    p.wait()
+    obj_f.close()
+    p.stdout.close()
+    p.stderr.close()
 
     ######## objdump
     p = subprocess.Popen(['./gethex.sh', exe_f.name], \
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if p.wait() != 0:
-        return ('Objdump error: %s' % p.stderr.read())
+        ret = 'Objdump error: %s' % p.stderr.read()
+        p.stderr.close()
+        p.stdout.close()
+        exe_f.close()
+        return ret
 
-    return json.loads(p.stdout.read().decode('ascii'))
+    obj = json.loads(p.stdout.read().decode('ascii'))
+    p.stdout.close()
+    p.stderr.close()
+    exe_f.close()
+
+    return obj
 
 
 @post('/nios2/as')
