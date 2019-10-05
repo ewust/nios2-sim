@@ -33,6 +33,9 @@ class Nios2(object):
         self.c_obj = 0
         self.reset()
 
+    def __del__(self):
+        pynios2.py_del_nios2(self.c_obj)
+
     def reset(self):
         if (self.c_obj != 0):
             pynios2.py_del_nios2(self.c_obj)
@@ -50,16 +53,19 @@ class Nios2(object):
     def set_pc(self, val):
         pynios2.py_set_pc(self.c_obj, val)
 
+    def print_regs(self, n_regs=32):
+        print(' pc = 0x%08x' % self.get_pc())
+        for i in range(n_regs):
+            print('% 3s = 0x%08x' % ('r%d'%i, self.get_reg(i)))
 
-    def __del__(self):
-        pynios2.py_del_nios2(self.c_obj)
+
 
     # TODO: do this with loadwords...
     def print_mem(self):
         pynios2.py_print_mem(self.c_obj)
 
     def dump_mem(self, min_addr, num_bytes):
-        s = addr_min & 0xfffffffc
+        s = min_addr & 0xfffffffc
         out = ''
         for addr in range(s, s+num_bytes, 4):
             if (addr & 0xf) == 0:
@@ -87,7 +93,7 @@ class Nios2(object):
         pynios2.py_one_step(self.c_obj)
 
     def run_until_halted(self, limit=-1):
-        pynios2.py_run_until_halted(self.c_obj, limit)
+        return pynios2.py_run_until_halted(self.c_obj, limit)
 
 
 
@@ -119,6 +125,7 @@ def scope():
 
 
 if __name__ == '__main__':
+    import sys
     if len(sys.argv) > 1:
         import json
 
