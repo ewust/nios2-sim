@@ -42,6 +42,11 @@ long _new_nios2(const char *mem, size_t mem_len)
     return (long )cpu;
 }
 
+uint32_t _get_pc(long obj)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    return cpu->pc;
+}
 void _set_pc(long obj, uint32_t pc)
 {
     struct nios2 *cpu = (struct nios2 *)obj;

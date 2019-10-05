@@ -12,6 +12,7 @@ cdef extern from "nios2.h":
     void     one_instr(void *cpu);
     long     _run_until_halted(long cpu, int limit);
     void     _set_pc(long cpu, uint32_t val);
+    uint32_t _get_pc(long cpu);
     uint32_t _get_reg(long cpu, long reg);
     void     _set_reg(long cpu, long reg, uint32_t val);
 

@@ -43,6 +43,7 @@ void one_instr(struct nios2 *cpu);
 void _one_step(long obj);
 int  _run_until_halted(long obj, int instr_limit);
 void _set_pc(long obj, uint32_t val);
+uint32_t _get_pc(long obj);
 
 uint32_t _get_reg(long cpu, long reg);
 void     _set_reg(long cpu, long reg, uint32_t val);
