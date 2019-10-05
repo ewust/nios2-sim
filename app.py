@@ -458,6 +458,27 @@ def post_example(eid):
             'success': success,
             }
 
+@post('/nios2/examples.moodle/<eid>/<uid>')
+def post_moodle(eid,uid):
+    asm = request.forms.get('asm')
+    obj = nios2_as(asm.encode('utf-8'))
+
+    if eid not in exercises:
+        return 'Exercise ID not found'
+
+    ex = exercises[eid]
+
+    if not(isinstance(obj, dict)):
+        return 'Error: %s' % obj
+
+    if '_start' not in obj['symbols']:
+        return 'No _start in your code (did you forget to enter instructions?\n%s' % (json.dumps(obj))
+
+    success, feedback = ex['checker'](obj)
+
+    return 'Passed(%s): %s\n%s' % (uid, success, feedback)
+
+
 @get('/nios2')
 @jinja2_view('index.html')
 def nios2():
