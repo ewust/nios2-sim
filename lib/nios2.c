@@ -42,6 +42,14 @@ long _new_nios2(const char *mem, size_t mem_len)
     return (long )cpu;
 }
 
+
+PyObject *_get_error(long obj)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    PyObject *ret = Py_BuildValue("s", cpu->error);
+    return ret;
+}
+
 uint32_t _get_pc(long obj)
 {
     struct nios2 *cpu = (struct nios2 *)obj;

@@ -4,7 +4,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file
 import tempfile
 import subprocess
-from sim import Nios2, flip_word_endian
+from csim import Nios2
 import json
 import copy
 import numpy as np
@@ -193,8 +193,9 @@ def check_array_sum(obj):
 
 
 def get_debug(cpu, mem_len=0x100):
-    out = ''
-    out += '<br/><br/>Memory:<br/><pre>'
+    out = '<br/>\n'
+    out += cpu.get_error()
+    out += '<br/>Memory:<br/><pre>'
     out += cpu.dump_mem(0, mem_len)
     out += '\nSymbols:\n' + cpu.dump_symbols()
     out += '</pre>'
@@ -211,7 +212,7 @@ def check_led_on(obj):
     # Set the cpu's LED MMIO callback to that reg's access function
     cpu.mmios[0xFF200000] = leds.access
 
-    instrs = cpu.run_until_halted(10000)
+    instrs = cpu.run_until_halted(1000000)
 
     feedback = ''
     if (leds.load() & 0x3ff) != 0x3ff:
@@ -275,7 +276,7 @@ def check_proj1(obj):
     cpu.mmios[0xFF200000] = p1.write_led
     cpu.mmios[0xFF200040] = p1.read_sw
 
-    instrs = cpu.run_until_halted(10000)
+    instrs = cpu.run_until_halted(1000000)
 
     print('Passed %d of %d' % (p1.num_passed, len(tests)))
     err = cpu.error
@@ -310,7 +311,7 @@ def check_list_sum(obj):
             cpu.storeword(head_addr+ii*8, next_ptr)
             cpu.storeword(head_addr+ii*8+4, np.uint32(n))
 
-        instrs = cpu.run_until_halted(10000)
+        instrs = cpu.run_until_halted(1000000)
 
         their_ans = np.int32(cpu.get_symbol_word('SUM'))
         if their_ans != ans:

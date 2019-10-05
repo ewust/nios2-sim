@@ -48,3 +48,4 @@ uint32_t _get_pc(long obj);
 uint32_t _get_reg(long cpu, long reg);
 void     _set_reg(long cpu, long reg, uint32_t val);
 
+PyObject *_get_error(long cpu);

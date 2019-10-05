@@ -625,6 +625,8 @@ class Nios2(object):
         for s,v in sorted(self.symbols.items(), key=lambda x: x[1]):
             out += fmt % (s, v)
         return out
+    def get_error(self):
+        return self.error
 
 
 def flip_word_endian(s):

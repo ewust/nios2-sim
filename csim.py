@@ -74,6 +74,16 @@ class Nios2(object):
         out += '\n'
         return out
 
+    def dump_symbols(self):
+        out = ''
+        max_sym_len = max([len(s) for s,v in self.symbols.items()])
+        fmt = '%% %ds: 0x%%08x\n' % max_sym_len
+        for s,v in sorted(self.symbols.items(), key=lambda x: x[1]):
+            out += fmt % (s, v)
+        return out
+
+
+
     def loadword(self, addr):
         return pynios2.py_loadword(self.c_obj, np.uint32(addr))
 
@@ -94,6 +104,9 @@ class Nios2(object):
 
     def run_until_halted(self, limit=-1):
         return pynios2.py_run_until_halted(self.c_obj, limit)
+
+    def get_error(self):
+        return pynios2.py_get_error(self.c_obj)
 
 
 
