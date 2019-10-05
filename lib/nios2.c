@@ -628,9 +628,6 @@ int _run_until_halted(long obj, int instr_limit)
     while (cpu->halted==0 && (instr_limit==-1 || n<instr_limit)) {
         one_instr(cpu);
         n++;
-        if ((n % 100000) == 0) {
-            printf("at instr %d\n", n);
-        }
     }
     if (n == instr_limit) {
         cpu->halted = 1;
