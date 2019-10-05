@@ -323,6 +323,7 @@ def check_list_sum(obj):
 
         cur_test += 1
 
+    del cpu
     return (True, feedback)
 
 
