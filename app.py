@@ -59,10 +59,25 @@ def nios2_as(asm):
 
 
 @post('/nios2/as')
+@jinja2_view('as.html')
 def post_as():
     asm = request.forms.get("asm")
-    return json.dumps(nios2_as(asm.encode('utf-8')))
+    obj = nios2_as(asm.encode('utf-8'))
 
+    if not(isinstance(obj, dict)):
+        return {'prog': 'Error: %s' % obj,
+                'success': False,
+                'code': asm}
+
+    return {'prog': json.dumps(obj),
+            'success': True,
+            'code': asm}
+
+
+@get('/nios2/as')
+@jinja2_view('as.html')
+def get_as():
+    return {}
 
 def require_symbols(obj, symbols):
     for s in symbols:
@@ -200,7 +215,7 @@ def check_proj1(obj):
             self.test_cases = test_cases
             self.cur_test = 0
             self.feedback = ''
-            self.passed = True
+            self.num_passed = 0
 
         def write_led(self, val):
             # Assert correct answer
@@ -212,7 +227,6 @@ def check_proj1(obj):
                     self.feedback += 'LEDs set to %s (should be %s) for SW %s' % \
                                 (bin(val&0x3ff), bin(expected), bin(sw))
                     self.feedback += get_debug(cpu)
-                    self.passed = False
                     cpu.halted = True
                     return
                 self.feedback += 'Test case %d: ' %(self.cur_test+1)
@@ -221,6 +235,7 @@ def check_proj1(obj):
                 self.feedback += ' upper bits ignored.\n'
             self.feedback += 'Passed test case %d<br/>\n' % (self.cur_test+1)
             self.cur_test += 1
+            self.num_passed += 1
             if self.cur_test >= len(self.test_cases):
                 cpu.halted = True
 
@@ -243,7 +258,9 @@ def check_proj1(obj):
 
     instrs = cpu.run_until_halted(10000)
 
-    return (p1.passed, p1.feedback)
+    print('Passed %d of %d' % (p1.num_passed, len(tests)))
+
+    return (p1.num_passed==len(tests), cpu.error + p1.feedback)
 
 
 def check_list_sum(obj):

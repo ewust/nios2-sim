@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <main role="main" class="container">
+
+        <div class="my-3 p-3 bg-white rounded box-shadow">
+          <h2>Assemble</h2>
+
+          {% if success is defined %}
+            {% if success is sameas true %}
+              <div class="alert alert-success" role="alert">
+                {{ prog }}
+              </div>
+            {% else %}
+              <div class="alert alert-danger" role="alert">
+                      <h3>Assemble/Link Error:</h3>
+                      {{ prog }}
+              </div>
+            {% endif %}
+          {% endif %}
+
+          <form action="/nios2/as" method="POST">
+            <div class="form-group">
+              <label for="assembly">Your Code</label>
+              <div style="border: 1px solid #000"><textarea name="asm" id="assembly" class="form-control" rows="40" style="font-family:monospace; border: 1px solid #000;">{{ code }}</textarea></div>
+              <br/>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+          </form>
+        </div>
+
+	  </main>
+{% endblock %}
+
+
+{% block foot %}
+    <script>
+      var editor = CodeMirror.fromTextArea(document.getElementById('assembly'), {
+        lineNumbers: true,
+      });
+        editor.setSize(null, '750px');
+    </script>
+{% endblock %}
