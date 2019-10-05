@@ -8,8 +8,10 @@ from sim import Nios2, flip_word_endian
 import json
 import copy
 import numpy as np
-
-#from hashlib import sha256
+import tracemalloc
+tracemalloc.start()
+s1=None
+s2=None
 
 
 app = application = default_app()
@@ -280,6 +282,18 @@ def check_proj1(obj):
 
     return (p1.num_passed==len(tests), cpu.error + p1.feedback)
 
+@get('/nios2/trace/<tid>')
+def trace(tid):
+    globals s1, s2
+
+    if tid == 's2':
+        s2.tracemalloc.take_snapshot()
+        for i in s2.compare_to(s1, 'lineno')[:10]:
+            print(i)
+    elif tid == 's1':
+        s1.tracemalloc.take_snapshot()
+
+
 
 def check_list_sum(obj):
     r = require_symbols(obj, ['SUM', 'HEAD'])
@@ -459,11 +473,23 @@ def get_example(eid):
            }
 
 
-@post('/nios2/examples/<eid>')
+@post('/nios2/examples/<eid>/<tid>')
 @jinja2_view('example.html')
-def post_example(eid):
+def post_example(eid, tid):
     asm = request.forms.get('asm')
     obj = nios2_as(asm.encode('utf-8'))
+
+    globals s1, s2
+
+    if tid == 's2':
+        s2.tracemalloc.take_snapshot()
+        for i in s2.compare_to(s1, 'lineno')[:10]:
+            print(i)
+    elif tid == 's1':
+        s1.tracemalloc.take_snapshot()
+
+
+
 
     if eid not in exercises:
         return {'asm_error': 'Exercise ID not found'}
