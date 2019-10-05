@@ -18,12 +18,14 @@
             {% if success is sameas true %}
               <div class="alert alert-success" role="alert">
                 <h3>Passed!</h3>
-                {{ feedback }}
+                {{ feedback }}<br/>
+                {{ extra_info }}
               </div>
             {% else %}
               <div class="alert alert-danger" role="alert">
                       <h3>Test case failed</h3>
-                      {{ feedback }}<br/><br/>Try Again!
+                      {{ feedback }}<br/><br/>Try Again!<br/>
+                      {{ extra_info }}
               </div>
             {% endif %}
           {% endif %}
