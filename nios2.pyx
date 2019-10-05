@@ -47,6 +47,8 @@ def py_run_until_halted(cpu: long, limit: long):
 
 def py_set_pc(cpu: long, val: long):
     _set_pc(cpu, val)
+def py_get_pc(cpu: long):
+    _get_pc(cpu)
 
 def py_set_reg(cpu: long, reg: long, val: long):
     _set_reg(cpu, reg, val)

@@ -2,6 +2,7 @@
 import pynios2
 import numpy as np
 import struct
+from sim import flip_word_endian
 
 
 class Nios2(object):
@@ -36,7 +37,7 @@ class Nios2(object):
         if (self.c_obj != 0):
             pynios2.py_del_nios2(self.c_obj)
         self.c_obj = pynios2.py_new_nios2(self.init_mem)
-        pynios2.py_set_pc(self.c_obj, self.init_pc)
+        self.set_pc(self.init_pc)
 
 
     def get_reg(self, reg):
@@ -44,12 +45,28 @@ class Nios2(object):
     def set_reg(self, reg, val):
         pynios2.py_set_reg(self.c_obj, reg, val)
 
+    def get_pc(self):
+        return pynios2.py_get_pc(self.c_obj)
+    def set_pc(self, val):
+        pynios2.py_set_pc(self.c_obj, val)
+
+
     def __del__(self):
         pynios2.py_del_nios2(self.c_obj)
 
     # TODO: do this with loadwords...
     def print_mem(self):
         pynios2.py_print_mem(self.c_obj)
+
+    def dump_mem(self, min_addr, num_bytes):
+        s = addr_min & 0xfffffffc
+        out = ''
+        for addr in range(s, s+num_bytes, 4):
+            if (addr & 0xf) == 0:
+                out += '\n0x%08x: ' % addr
+            out += '%08x  ' % self.loadword(addr)
+        out += '\n'
+        return out
 
     def loadword(self, addr):
         return pynios2.py_loadword(self.c_obj, np.uint32(addr))
@@ -102,6 +119,18 @@ def scope():
 
 
 if __name__ == '__main__':
-    scope()
-    print('did it')
+    if len(sys.argv) > 1:
+        import json
+
+        test_prog = sys.argv[1]
+        obj = json.loads(test_prog)
+        cpu = Nios2(obj=obj)
+        print(cpu.dump_mem(0x00, 0x100))
+        n = cpu.run_until_halted(10000)
+        print('Ran %d instructions' % n)
+        cpu.print_regs()
+        print(cpu.dump_mem(0x00, 0x100))
+
+    else:
+        scope()
 
