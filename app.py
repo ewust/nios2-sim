@@ -8,10 +8,7 @@ from sim import Nios2, flip_word_endian
 import json
 import copy
 import numpy as np
-import tracemalloc
-tracemalloc.start()
-s1=None
-s2=None
+import gc
 
 
 app = application = default_app()
@@ -221,8 +218,10 @@ def check_led_on(obj):
         feedback += 'Failed test case 1: '
         feedback += 'LEDs are set to %s (should be %s)' % (bin(leds.load()&0x3ff), bin(0x3ff))
         feedback += get_debug(cpu)
+        del cpu
         return (False, feedback)
 
+    del cpu
     return (True, 'Passed test case 1')
 
 
@@ -279,21 +278,9 @@ def check_proj1(obj):
     instrs = cpu.run_until_halted(10000)
 
     print('Passed %d of %d' % (p1.num_passed, len(tests)))
-
-    return (p1.num_passed==len(tests), cpu.error + p1.feedback)
-
-@get('/nios2/trace/<tid>')
-def trace(tid):
-    globals s1, s2
-
-    if tid == 's2':
-        s2.tracemalloc.take_snapshot()
-        for i in s2.compare_to(s1, 'lineno')[:10]:
-            print(i)
-    elif tid == 's1':
-        s1.tracemalloc.take_snapshot()
-
-
+    err = cpu.error
+    del cpu
+    return (p1.num_passed==len(tests), err + p1.feedback)
 
 def check_list_sum(obj):
     r = require_symbols(obj, ['SUM', 'HEAD'])
@@ -331,6 +318,7 @@ def check_list_sum(obj):
             feedback += 'SUM was %d (0x%08x), should be %d (0x%08x)' % \
                     (their_ans, np.uint32(their_ans), ans, np.uint32(ans))
             feedback += get_debug(cpu)
+            del cpu
             return (False, feedback)
 
         feedback += 'Passed test case %d<br/>\n' % cur_test
@@ -461,7 +449,7 @@ N3:     .word 0,  6
 @get('/nios2/examples/<eid>')
 @jinja2_view('example.html')
 def get_example(eid):
-
+    gc.collect()
     if eid not in exercises:
         return {'asm_error': 'Exercise ID not found'}
     ex = exercises[eid]
@@ -476,20 +464,9 @@ def get_example(eid):
 @post('/nios2/examples/<eid>/<tid>')
 @jinja2_view('example.html')
 def post_example(eid, tid):
+    gc.collect()
     asm = request.forms.get('asm')
     obj = nios2_as(asm.encode('utf-8'))
-
-    globals s1, s2
-
-    if tid == 's2':
-        s2.tracemalloc.take_snapshot()
-        for i in s2.compare_to(s1, 'lineno')[:10]:
-            print(i)
-    elif tid == 's1':
-        s1.tracemalloc.take_snapshot()
-
-
-
 
     if eid not in exercises:
         return {'asm_error': 'Exercise ID not found'}
@@ -522,6 +499,7 @@ def post_example(eid, tid):
 
 @post('/nios2/examples.moodle/<eid>/<uid>')
 def post_moodle(eid,uid):
+    gc.collect()
     asm = request.forms.get('asm')
     obj = nios2_as(asm.encode('utf-8'))
 
