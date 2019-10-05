@@ -194,7 +194,9 @@ def check_array_sum(obj):
 
 def get_debug(cpu, mem_len=0x100):
     out = '<br/>\n'
-    out += cpu.get_error()
+    err = cpu.get_error()
+    if err != None:
+        out += err
     out += '<br/>Memory:<br/><pre>'
     out += cpu.dump_mem(0, mem_len)
     out += '\nSymbols:\n' + cpu.dump_symbols()
