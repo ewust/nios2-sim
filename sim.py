@@ -632,6 +632,9 @@ class Nios2(object):
         self.mmios[addr] = cb
     def halt(self):
         self.halted = True
+    def get_clobbered(self):
+        # Not implemented :(
+        return []
 
 
 def flip_word_endian(s):

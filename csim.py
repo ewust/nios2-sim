@@ -45,6 +45,9 @@ class Nios2(object):
     def halt(self):
         pynios2.py_halt_cpu(self.c_obj)
 
+    def get_clobbered(self):
+        return pynios2.py_get_clobbered(self.c_obj)
+
 
     def get_reg(self, reg):
         return pynios2.py_get_reg(self.c_obj, reg)
