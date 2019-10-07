@@ -389,7 +389,7 @@ void check_callees(struct nios2 *cpu)
 
     if (head == NULL) {
         // weird...but okay
-        printf("Warning: No callee stack on ret @0x%08x\n", cpu->pc);
+        //printf("Warning: No callee stack on ret @0x%08x\n", cpu->pc);
         return;
     }
 
@@ -399,7 +399,7 @@ void check_callees(struct nios2 *cpu)
     for (i=0; i<sizeof(to_check)/sizeof(int); i++) {
         int rid = to_check[i];
         if (cpu->regs[rid] != head->regs[rid]) {
-            mark_clobbered(cpu, cpu->pc, rid);
+            mark_clobbered(cpu, cpu->pc - 4, rid);  // -4 because we already incremented PC
         }
     }
 
