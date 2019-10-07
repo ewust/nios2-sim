@@ -228,7 +228,7 @@ def check_led_on(obj):
     feedback = ''
     if (leds.load() & 0x3ff) != 0x3ff:
         feedback += 'Failed test case 1: '
-        feedback += 'LEDs are set to %s (should be %s)' % (bin(leds.load()&0x3ff), bin(0x3ff))
+        feedback += 'LEDs are set to %s (should be %s)' % (format((leds.load()&0x3ff), '#012b'), bin(0x3ff))
         feedback += get_debug(cpu)
         del cpu
         return (False, feedback)
