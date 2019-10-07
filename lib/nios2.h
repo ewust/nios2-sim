@@ -2,7 +2,8 @@
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
 
-#define MAX_MMIOS   16
+#define MAX_MMIOS       16
+#define MAX_CLOBBERED   100
 
 struct mmio {
     uint32_t    addr;
@@ -10,16 +11,32 @@ struct mmio {
     void        *arg;
 };
 
+struct callee_saved {
+    uint32_t            pc;
+    uint32_t            regs[32];
+    struct callee_saved *prev;
+};
+
+struct clobbered {
+    uint32_t    pc;
+    int         reg_id;
+};
+
 struct nios2 {
-    int             halted;
-    char            *error;
+    int                 halted;
+    char                *error;
 
-    uint32_t        pc;
-    uint32_t        regs[32];
+    uint32_t            pc;
+    uint32_t            regs[32];
 
-    unsigned char   *mem;
-    size_t          mem_len;
-    struct mmio     mmios[MAX_MMIOS];
+    struct callee_saved *callee_stack_head;
+
+    int                 clobbered_idx;
+    struct clobbered    clobbered_history[MAX_CLOBBERED];
+
+    unsigned char       *mem;
+    size_t              mem_len;
+    struct mmio         mmios[MAX_MMIOS];
 };
 
 // Create/Delete
@@ -49,4 +66,6 @@ void     _one_step(long obj);
 int      _run_until_halted(long obj, int instr_limit);
 void     _set_pc(long obj, uint32_t val);
 uint32_t _get_pc(long obj);
+
+PyObject *_get_clobbered(long obj);
 

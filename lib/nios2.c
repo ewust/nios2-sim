@@ -31,6 +31,12 @@ long _new_nios2(const char *mem, size_t mem_len)
     memset(cpu->regs, 0, sizeof(uint32_t)*32);
 
 
+    // Init internal tracking
+    memset(cpu->clobbered_history, 0, sizeof(struct clobbered)*MAX_CLOBBERED);
+    cpu->clobbered_idx = 0;
+    cpu->callee_stack_head = NULL;
+
+
     // setup mmio
     int i;
     for (i=0; i<MAX_MMIOS; i++) {
@@ -134,9 +140,6 @@ void _print_mem(long obj)
 // Like printf, but output is cpu->error
 void error_printf(struct nios2 *cpu, const char *fmt, ...)
 {
-    //cpu->error = NULL;
-    printf("adding %s to error\n", fmt);
-
     va_list ap;
     int size = 0;
 
@@ -322,6 +325,89 @@ uint32_t rotate_r32(uint32_t n, int m)
     return (uint32_t)((r>>32) | r);
 }
 
+// Called on call or callr
+void push_callees(struct nios2 *cpu)
+{
+    struct callee_saved *head = cpu->callee_stack_head;
+    struct callee_saved *new = malloc(sizeof(struct callee_saved));
+
+    // Just copy all the registers, only check the ones
+    // we care about. This costs us 128+4(+4) bytes per frame....
+    new->pc = cpu->pc;
+    memcpy(new->regs, cpu->regs, sizeof(uint32_t)*32);
+
+    // Push this stack frame
+    new->prev = head;
+    cpu->callee_stack_head = new;
+}
+
+void mark_clobbered(struct nios2 *cpu, uint32_t pc, int reg_id)
+{
+    int i;
+    for (i=0; i<cpu->clobbered_idx; i++) {
+        if (cpu->clobbered_history[i].pc == pc &&
+            cpu->clobbered_history[i].reg_id == reg_id) {
+            // Already in the history
+            return;
+        }
+    }
+    // Add to history and log
+    cpu->clobbered_history[cpu->clobbered_idx].pc = pc;
+    cpu->clobbered_history[cpu->clobbered_idx].reg_id = reg_id;
+    //error_printf(cpu, "Function @0x%08x clobbered r%d\n", cpu->pc, reg_id);
+    //printf("Function @0x%08x clobbered r%d\n", cpu->pc, reg_id);
+    cpu->clobbered_idx++;
+    cpu->clobbered_idx %= MAX_CLOBBERED;
+}
+
+
+PyObject *_get_clobbered(long obj)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    PyObject *list = PyList_New(cpu->clobbered_idx);
+    if (!list) {
+        return NULL;
+    }
+    int i;
+    for (i = 0; i<cpu->clobbered_idx; i++) {
+        PyObject *elt = Py_BuildValue("(ll)",
+                                       cpu->clobbered_history[i].pc,
+                                       cpu->clobbered_history[i].reg_id);
+        if (!elt) {
+            Py_DECREF(list);
+            return NULL;
+        }
+        PyList_SET_ITEM(list, i, elt);
+    }
+    return list;
+}
+
+// Called on ret
+void check_callees(struct nios2 *cpu)
+{
+    struct callee_saved *head = cpu->callee_stack_head;
+
+    if (head == NULL) {
+        // weird...but okay
+        printf("Warning: No callee stack on ret @0x%08x\n", cpu->pc);
+        return;
+    }
+
+    // Callee-saved regs to check:
+    int to_check[] = {16, 17, 18, 19, 20, 21, 22, 23, 27, 28, 31};
+    int i;
+    for (i=0; i<sizeof(to_check)/sizeof(int); i++) {
+        int rid = to_check[i];
+        if (cpu->regs[rid] != head->regs[rid]) {
+            mark_clobbered(cpu, cpu->pc, rid);
+        }
+    }
+
+    // Pop this stack frame
+    cpu->callee_stack_head = head->prev;
+    free(head);
+}
+
 ////////////////
 // R-types
 void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, uint32_t rC, int imm5)
@@ -338,6 +424,7 @@ void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, ui
         case 0x04: // flushp,
             break;
         case 0x05: // ret,
+            check_callees(cpu);
             cpu->pc = get_reg(cpu, 31);
             break;
         case 0x06: // nor,
@@ -405,6 +492,7 @@ void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, ui
             break;
         case 0x1d: // callr,
             set_reg(cpu, 31, cpu->pc);
+            push_callees(cpu);
             cpu->pc = get_reg(cpu, rA);
             break;
         case 0x1e: // xor,
@@ -496,6 +584,7 @@ void one_instr(struct nios2 *cpu)
         // J-types:
         case 0x00:  // call
             set_reg(cpu, 31, cpu->pc);
+            push_callees(cpu);
             cpu->pc = (cpu->pc & 0xf0000000) | (imm26 << 2);
             break;
         case 0x01:  // jmpi
