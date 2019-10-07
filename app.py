@@ -220,7 +220,8 @@ def check_led_on(obj):
     # Make a MMIO rw/register
     leds = Nios2.MMIO_Reg()
     # Set the cpu's LED MMIO callback to that reg's access function
-    cpu.mmios[0xFF200000] = leds.access
+    cpu.add_mmio(0xFF200000, leds.access)
+    #cpu.mmios[0xFF200000] = leds.access
 
     instrs = cpu.run_until_halted(1000000)
 
@@ -257,7 +258,7 @@ def check_proj1(obj):
                     self.feedback += 'LEDs set to %s (should be %s) for SW %s' % \
                                 (bin(val&0x3ff), bin(expected), bin(sw))
                     self.feedback += get_debug(cpu)
-                    cpu.halted = True
+                    cpu.halt()
                     return
                 self.feedback += 'Test case %d: ' %(self.cur_test+1)
                 self.feedback += 'Warning: wrote 0x%08x (instead of 0x%08x) to LEDs for SW %s;' %\
@@ -267,9 +268,12 @@ def check_proj1(obj):
             self.cur_test += 1
             self.num_passed += 1
             if self.cur_test >= len(self.test_cases):
-                cpu.halted = True
+                cpu.halt()
 
         def read_sw(self):
+            if self.cur_test > len(self.test_cases):
+                print('Error: read_sw after we should have halted?')
+                return 0    # ??
             sw, led = self.test_cases[self.cur_test]
             return sw
 
@@ -283,13 +287,18 @@ def check_proj1(obj):
 
     p1 = p1grader(tests)
 
-    cpu.mmios[0xFF200000] = p1.write_led
-    cpu.mmios[0xFF200040] = p1.read_sw
+    cpu.add_mmio(0xFF200000, p1.write_led)
+    cpu.add_mmio(0xFF200040, p1.read_sw)
 
-    instrs = cpu.run_until_halted(1000000)
+    #cpu.mmios[0xFF200000] = p1.write_led
+    #cpu.mmios[0xFF200040] = p1.read_sw
+
+    instrs = cpu.run_until_halted(10000)
 
     print('Passed %d of %d' % (p1.num_passed, len(tests)))
-    err = cpu.error
+    err = cpu.get_error()
+    if err is None:
+        err = ''
     del cpu
     return (p1.num_passed==len(tests), err + p1.feedback)
 

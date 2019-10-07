@@ -16,6 +16,7 @@ cdef extern from "nios2.h":
     uint32_t _get_reg(long cpu, long reg);
     void     _set_reg(long cpu, long reg, uint32_t val);
     object   _get_error(long cpu);
+    void     _halt_cpu(long cpu);
 
 
 
@@ -57,3 +58,5 @@ def py_get_reg(cpu: long, reg: long):
     return _get_reg(cpu, reg)
 def py_get_error(cpu: long):
     return _get_error(cpu)
+def py_halt_cpu(cpu: long):
+    _halt_cpu(cpu)

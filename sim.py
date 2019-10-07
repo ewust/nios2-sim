@@ -628,6 +628,11 @@ class Nios2(object):
     def get_error(self):
         return self.error
 
+    def add_mmio(self, addr, cb):
+        self.mmios[addr] = cb
+    def halt(self):
+        self.halted = True
+
 
 def flip_word_endian(s):
     out = b''

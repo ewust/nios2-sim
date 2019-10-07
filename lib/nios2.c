@@ -131,6 +131,46 @@ void _print_mem(long obj)
     _print_regs(obj);
 }
 
+// Like printf, but output is cpu->error
+void error_printf(struct nios2 *cpu, const char *fmt, ...)
+{
+    //cpu->error = NULL;
+    printf("adding %s to error\n", fmt);
+
+    va_list ap;
+    int size = 0;
+
+    va_start(ap, fmt);
+    size = vsnprintf(NULL, size, fmt, ap);
+    va_end(ap);
+
+    if (size < 0) {
+        return;
+    }
+
+    size++;     // For \0
+    //size += strlen(cpu->error);
+    int cur_size = 0;
+    if (cpu->error != NULL) {
+        cur_size = strlen(cpu->error);
+    }
+
+    cpu->error = realloc(cpu->error, size + cur_size);
+    if (cpu->error == NULL) {
+        return;
+    }
+
+    va_start(ap, fmt);
+    size = vsnprintf(&cpu->error[cur_size], size, fmt, ap);
+    if (size < 0) {
+        free(cpu->error);
+        return;
+    }
+    va_end(ap);
+
+    return;
+}
+
 //////////////////////
 // Memory Access
 uint32_t access_mmio(struct nios2 *cpu, uint32_t addr, uint32_t val, int is_store)
@@ -158,7 +198,8 @@ uint32_t access_mmio(struct nios2 *cpu, uint32_t addr, uint32_t val, int is_stor
     }
     // MMIO not found...halt cpu
     cpu->halted = 1;
-    cpu->error = "ERROR: accessed out of bound memory";
+
+    error_printf(cpu, "ERROR: access out of bound memory: 0x%08x\n", addr);
     return 0;
 }
 
@@ -206,9 +247,15 @@ void _add_mmio(long obj, uint32_t addr, PyObject *callback)
     struct nios2 *cpu = (struct nios2 *)obj;
     int i;
     for (i=0; i<MAX_MMIOS; i++) {
-        if (cpu->mmios[i].addr == addr || cpu->mmios[i].addr == 0) {
+        if ((cpu->mmios[i].addr == addr) || cpu->mmios[i].addr == 0) {
+            //printf("Adding MMIO 0x%08x to mmios[%d]\n", addr, i);
+            if (cpu->mmios[i].callback != NULL) {
+                Py_XDECREF(cpu->mmios[i].callback);
+            }
+            Py_XINCREF(callback);
             cpu->mmios[i].addr = addr;
             cpu->mmios[i].callback = callback;
+            return;
         }
     }
 }
@@ -639,7 +686,13 @@ int _run_until_halted(long obj, int instr_limit)
     }
     if (n == instr_limit) {
         cpu->halted = 1;
-        cpu->error = "Instruction limit reached";
+        error_printf(cpu, "Instruction limit reached: %d\n", n);
     }
     return n;
+}
+
+void _halt_cpu(long obj)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    cpu->halted = 1;
 }

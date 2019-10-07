@@ -42,6 +42,9 @@ class Nios2(object):
         self.c_obj = pynios2.py_new_nios2(self.init_mem)
         self.set_pc(self.init_pc)
 
+    def halt(self):
+        pynios2.py_halt_cpu(self.c_obj)
+
 
     def get_reg(self, reg):
         return pynios2.py_get_reg(self.c_obj, reg)
