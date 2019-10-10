@@ -902,8 +902,8 @@ def post_moodle(eid,uid):
     if not(isinstance(obj, dict)):
         return 'Error: %s' % obj
 
-    if '_start' not in obj['symbols']:
-        return 'No _start in your code (did you forget to enter instructions?\n%s' % (json.dumps(obj))
+    #if '_start' not in obj['symbols']:
+    #    return 'No _start in your code (did you forget to enter instructions?\n%s' % (json.dumps(obj))
 
     #success, feedback = ex['checker'](obj)
     res = ex['checker'](obj)
