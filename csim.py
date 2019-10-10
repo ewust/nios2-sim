@@ -112,7 +112,10 @@ class Nios2(object):
         return pynios2.py_run_until_halted(self.c_obj, limit)
 
     def get_error(self):
-        return pynios2.py_get_error(self.c_obj)
+        err = pynios2.py_get_error(self.c_obj)
+        if err is None:
+            return ''
+        return err
 
 
 

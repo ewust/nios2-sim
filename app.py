@@ -11,7 +11,8 @@ import numpy as np
 import gc
 import collections
 import html
-
+import struct
+from collections import defaultdict
 
 app = application = default_app()
 
@@ -106,7 +107,7 @@ def require_symbols(obj, symbols):
 
 # Returns (correct_bool, feedback)
 def check_find_min(obj):
-    r = require_symbols(obj, ['MIN', 'ARR'])
+    r = require_symbols(obj, ['MIN', 'ARR', '_start'])
     if r is not None:
         return (False, r)
 
@@ -150,7 +151,7 @@ def check_find_min(obj):
     return (True, feedback)
 
 def check_array_sum(obj):
-    r = require_symbols(obj, ['SUM', 'ARR'])
+    r = require_symbols(obj, ['SUM', 'ARR', '_start'])
     if r is not None:
         return (False, r)
 
@@ -196,9 +197,7 @@ def check_array_sum(obj):
 
 def get_debug(cpu, mem_len=0x100, show_stack=False):
     out = '<br/>\n'
-    err = cpu.get_error()
-    if err != None:
-        out += err
+    out += cpu.get_error()
     out += '<br/>Memory:<br/><pre>'
     out += cpu.dump_mem(0, mem_len)
     out += '\nSymbols:\n' + cpu.dump_symbols()
@@ -299,13 +298,11 @@ def check_proj1(obj):
 
     print('Passed %d of %d' % (p1.num_passed, len(tests)))
     err = cpu.get_error()
-    if err is None:
-        err = ''
     del cpu
     return (p1.num_passed==len(tests), err + p1.feedback)
 
 def check_list_sum(obj):
-    r = require_symbols(obj, ['SUM', 'HEAD'])
+    r = require_symbols(obj, ['SUM', 'HEAD', '_start'])
     if r is not None:
         return (False, r)
 
@@ -351,7 +348,7 @@ def check_list_sum(obj):
     return (True, feedback)
 
 def check_fib(obj):
-    r = require_symbols(obj, ['N', 'F'])
+    r = require_symbols(obj, ['N', 'F', '_start'])
     if r is not None:
         return (False, r)
 
@@ -396,7 +393,7 @@ def check_fib(obj):
 
 
 def check_sort(obj):
-    r = require_symbols(obj, ['N', 'SORT'])
+    r = require_symbols(obj, ['N', 'SORT', '_start'])
     if r is not None:
         return (False, r)
 
@@ -511,8 +508,6 @@ def check_uart(obj):
                 return (True, 'Test case %d passed\n<br/>' % test_no, self.extra_info)
             else:
                 err = cpu.get_error()
-                if err is None:
-                    err = ''
                 self.feedback += 'Failed test case %d\n<br/>' % test_no
                 self.feedback += 'Name: <code>%s</code><br/>' % html.escape(self.name)
                 self.feedback += 'Got back <code>%s</code> %s<br/>' % (html.escape(self.recvd), self.recvd.encode('ascii').hex())
@@ -551,6 +546,74 @@ def check_uart(obj):
 
     extra_info += 'Executed %d instructions' % tot_ins
     return (True, feedback, extra_info)
+
+
+def hotpatch(obj, new_start_asm):
+    hp = '.text\n'
+    # fill symbols
+    rev_map = defaultdict(list) # addr => [list_of_symbols]
+    # TODO: this will only work for word-aligned labels...
+    for s,addr in obj['symbols'].items():
+        #hp += '.equ %s, 0x%08x\n' % (s, addr)
+        if s != '_start':
+            rev_map[addr].append(s)
+
+    # fill bytes
+    p = bytes.fromhex(obj['prog'])
+    for i in range(len(p)>>2):
+        addr = 4*i
+        word, = struct.unpack('>I', p[4*i:4*i+4])
+        for sym in rev_map[addr]:
+            hp += '%s:\n' % sym
+        hp += ' .word 0x%08x\n' % (word)
+    hp += new_start_asm
+    return nios2_as(hp.encode('utf-8'))
+
+def check_callee_saved(obj):
+    # Need to insert a _start symbol
+    new_start = '''.text
+    test_A:  .word 12
+    test_B:  .word 42
+    _start:
+        movia   sp, 0x04000000
+        subi    sp, sp, 4
+
+        movia   r4, test_A
+        ldw     r4, 0(r4)
+        movia   r5, test_B
+        ldw     r5, 0(r5)
+
+        call    foo
+
+        break
+    '''
+    nobj = hotpatch(obj, new_start)
+
+    tests = [(12, 42, 10230),
+             (5, 5, 730),
+             (0, 0, 0)]
+
+    cpu = Nios2(obj=nobj)
+    feedback = ''
+    for i,tc in enumerate(tests):
+        cpu.reset()
+
+        cpu.write_symbol_word('test_A', tc[0])
+        cpu.write_symbol_word('test_B', tc[1])
+
+        cpu.run_until_halted(1000)
+
+        passed = (cpu.get_reg(2) == tc[2]) and len(cpu.get_clobbered())==0
+        if passed:
+            feedback += 'Passed test case %d<br/>\n' % (i+1)
+        else:
+            feedback += 'Failed test case %d<br/>\n' % (i+1)
+            for addr,rid in cpu.get_clobbered():
+                feedback += 'Error: function @0x%08x clobbered r%d\n<br/>' % (addr, rid)
+            feedback += '<br/>'
+            feedback += get_debug(cpu, show_stack=True)
+            return (False, feedback, None)
+    return (True, feedback, None)
 
 
 exercises = {
@@ -738,6 +801,30 @@ _start:
         ''',
         'checker': check_uart
     },
+    ##########
+    # callee-saved
+    'callee-saved': {
+        'public': False,
+        'title': 'Callee Saved',
+        'diff': 'medium',
+        'desc': '''Your are given the following function, but it is missing two parts for you to fill in: saving registers in the function prologue and restoring them in the epilogue.
+        ''',
+        'code':'''.text
+
+foo:
+    # Write your function prologue here
+
+    add     r2, r4, r5
+    mov     r6, r4
+    slli    r12, r6, 4
+    mul     r16, r2, r12
+    sub     r18, r2, r12
+    add     r2, r16, r18
+
+    # Write your function epilogue here
+    ret''',
+        'checker': check_callee_saved
+    },
 }
 
 
@@ -775,12 +862,12 @@ def post_example(eid):
                 'exercise_desc':  ex['desc'],\
                 'asm_error': obj,}
 
-    if '_start' not in obj['symbols']:
-        return {'eid': eid, \
-                'exercise_code': asm,\
-                'exercise_title': ex['title'],\
-                'exercise_desc':  ex['desc'],\
-                'asm_error': 'No _start in your code (did you forget to enter instructions?)<br/>%s' % (json.dumps(obj)),}
+    #if '_start' not in obj['symbols']:
+    #    return {'eid': eid, \
+    #            'exercise_code': asm,\
+    #            'exercise_title': ex['title'],\
+    #            'exercise_desc':  ex['desc'],\
+    #            'asm_error': 'No _start in your code (did you forget to enter instructions?)<br/>%s' % (json.dumps(obj)),}
 
     extra_info = ''
     res = ex['checker'](obj)
