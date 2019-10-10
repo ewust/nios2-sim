@@ -13,6 +13,7 @@ import collections
 import html
 import struct
 from collections import defaultdict
+from bs4 import BeautifulSoup
 
 app = application = default_app()
 
@@ -578,6 +579,9 @@ def check_callee_saved(obj):
         movia   sp, 0x04000000
         subi    sp, sp, 4
 
+        movi    r18, 0xccc
+        movi    r16, 0xddd
+        movi    r17, 8
         movia   r4, test_A
         ldw     r4, 0(r4)
         movia   r5, test_B
@@ -912,7 +916,14 @@ def post_moodle(eid,uid):
     elif len(res) == 3:
         success, feedback, _ = res
 
-    return 'Passed(%s): %s\n%s' % (uid, success, feedback)
+    # de-HTML
+    soup = BeautifulSoup(feedback, features="html.parser")
+    feedback = soup.get_text()
+
+    if success:
+        return 'Suite %s Passed:\n%s' % (uid, feedback)
+    else:
+        return 'Incorrect:\n%s' % (feedback)
 
 
 @get('/nios2')
