@@ -591,9 +591,18 @@ def check_callee_saved(asm):
         movia   sp, 0x04000000
         subi    sp, sp, 4
 
-        movi    r18, 0xccc
-        movi    r16, 0xddd
-        movi    r17, 8
+        # polute callee's
+        movui    r16, 0xaaa2
+        movui    r17, 0xbbb4
+        movui    r18, 0xccc1
+        movui    r19, 0xddd0
+        movui    r20, 0xeee2
+        movui    r21, 0x131f
+        movui    r22, 0x831e
+        movui    r23, 0x918c
+
+
+
         movia   r4, test_A
         ldw     r4, 0(r4)
         movia   r5, test_B
@@ -638,6 +647,19 @@ def check_roll_dice(asm):
     roll:
         movia   r4, ROLL_MMIO
         ldwio   r2, 0(r4)
+
+        # pollute caller-saved
+        movui   r5, 0xa0a0
+        movui   r6, 0xbcbc
+        movui   r7, 0x8889
+        movui   r8, 0xccdc
+        movui   r9, 0x3317
+        movui   r10, 0x9981
+        movui   r11, 0x4434
+        movui   r12, 0x3a2c
+        movui   r13, 0xaacc
+        movui   r14, 0x44ee
+        movui   r15, 0x4142
         ret
     _start:
         movia   sp, 0x04000000
