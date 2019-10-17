@@ -19,10 +19,13 @@ def nios2_as(asm):
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if p.wait() != 0:
         ret = 'Assembler error: %s' % p.stderr.read()
-        obj_f.close()
-        asm_f.close()
-        p.stdout.close()
-        p.stderr.close()
+        try:
+            obj_f.close()
+            asm_f.close()
+            p.stdout.close()
+            p.stderr.close()
+        except:
+            pass
         return ret
 
     asm_f.close()
