@@ -43,6 +43,9 @@ def check_roll_dice(asm):
     #nobj = hotpatch(obj, new_start)
     hp = new_start + asm    # asm.replace('roll:', '_roll:') hmm..
     nobj = nios2_as(hp.encode('utf-8'))
+    r = require_symbols(nobj, ['TEST_N', '_start'])
+    if r is not None:
+        return (False, r)
     cpu = Nios2(obj=nobj)
 
     class Dice(object):
