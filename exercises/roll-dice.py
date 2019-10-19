@@ -89,7 +89,9 @@ def check_roll_dice(asm):
             feedback += '<br/>'
             feedback += dice.feedback + '<br/>\n'
             feedback += get_debug(cpu, show_stack=True)
+            del cpu
             return (False, feedback, None)
+    del cpu
     return (True, feedback, None)
 
 
