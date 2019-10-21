@@ -6,6 +6,9 @@ import struct
 # callee-saved
 def check_callee_saved(asm):
     obj = nios2_as(asm.encode('utf-8'))
+    r = require_symbols(obj, ['foo'])
+    if r is not None:
+        return (False, r)
     # Need to insert a _start symbol
     new_start = '''.text
     test_A:  .word 12
@@ -36,6 +39,9 @@ def check_callee_saved(asm):
         break
     '''
     nobj = hotpatch(obj, new_start)
+    r = require_symbols(nobj, ['foo', '_start'])
+    if r is not None:
+        return (False, r)
 
     tests = [(12, 42, 10230),
              (5, 5, 730),
