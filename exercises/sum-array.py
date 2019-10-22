@@ -1,4 +1,5 @@
 from exercises import *
+import numpy as np
 
 ##############
 # Sum the array
