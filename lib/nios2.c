@@ -510,12 +510,12 @@ void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, ui
             break;
         case 0x24: // divu,
             if (get_reg(cpu, rB) != 0) {
-                set_reg(cpu, rC, (uint32_t)((int32_t)get_reg(cpu, rA)) / ((int32_t)get_reg(cpu, rB)));
+                set_reg(cpu, rC, get_reg(cpu, rA) / get_reg(cpu, rB));
             }
             break;
         case 0x25: // div,
             if (get_reg(cpu, rB) != 0) {
-                set_reg(cpu, rC, get_reg(cpu, rA) / get_reg(cpu, rB));
+                set_reg(cpu, rC, (uint32_t)((int32_t)get_reg(cpu, rA) / ((int32_t)get_reg(cpu, rB))));
             }
             break;
         case 0x27: // mul,
