@@ -25,9 +25,10 @@ Submitted solutions are first assembled (uisng `bin/nios2-elf-as`) and linked (u
 ### Developing
 ---
 
-Each exercise is taken from the `exercises` dictionary in app.py (TODO: put somewhere more sane). Each exercise has an ID (eid) which is the key in the dictionary (e.g. `list-sum`). This key is used in the URL for the exercise (e.g. /nios2/examples/list-sum).
+Each exercise is taken from the `exercises` directory. Each file only needs to `from exercises import *` and can add an exercise with the `Exercises.addExercise(eid, params)` interface.
+Each exercise has an ID (eid) which is the key in the dictionary (e.g. `list-sum`). This key is used in the URL for the exercise (e.g. /nios2/examples/list-sum).
 
-The values in the exercises dictionary are themselves a dictionary of:
+The values in the params dictionary are:
 - `public`: set True if the exercise should be listed in the index
 - `diff`: Difficulty of the problem (e.g. easy, medium, hard)
 - `title`: The name of the exercise
@@ -35,14 +36,14 @@ The values in the exercises dictionary are themselves a dictionary of:
 - `code`: Initial code to be given.
 - `checker`: A function that will be used to verify the program.
 
-If you add an exercise, you will need to create a new element in the exercises dictionary, and define a custom checker function.
+If you add an exercise, you will need to define a custom checker function.
 
 ### Checker Functions
 ---
 
-Checker functions take one argument: a JSON object of the assembled program (produced by `nios2_as`). The checker function must return a tuple `(success, feedback)`, with `success` set to True if all test cases passed, and False otherwise. `feedback` is a string carrying information on failed test cases / dbug help.
+Checker functions take one argument: a string of the provided assembly (which you can assemble this to machine code using `nios2_as`). The checker function must return a tuple `(success, feedback)`, with `success` set to True if all test cases passed, and False otherwise. `feedback` is a string carrying information on failed test cases / debug help.
 
-The CPU is simulated using a custom nios2 CPU (sim.py), instantiated by `cpu = Nios2(obj=obj)`. The CPU can be executed to completion, breakpoint, error, or 1000 instructions (whichever occurs first) by `cpu.run_until_halted(1000)`.
+The CPU is simulated using a custom nios2 CPU (csim.py), instantiated by `cpu = Nios2(obj=obj)`. The CPU can be executed to completion, breakpoint, error, or 1000 instructions (whichever occurs first) by `cpu.run_until_halted(1000)`.
 
 For multiple test cases, you can reset the cpu with `cpu.reset()`, which will reset the memory to the inital program (provided by the JSON object). If a test case fails, you probably want to provide a reason, and as much info as possible; it can be helpful to print out memory and symbol mapping (see the `get_debug()` function).
 
@@ -57,7 +58,7 @@ If you only want a read/write register at the address, you can create a `Nios2.M
 
 ```python
 leds = Nios2.MMIO_Reg()
-cpu.mmios[0xFF200000] = leds.access
+cpu.add_mmio(0xFF200000, leds.access)
 ```
 
 Then later, the value can be read (`leds.load()`).
