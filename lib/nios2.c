@@ -30,6 +30,8 @@ long _new_nios2(const char *mem, size_t mem_len)
     cpu->pc = 0;
     memset(cpu->regs, 0, sizeof(uint32_t)*32);
 
+    memset(cpu->ctl, 0, sizeof(uint32_t)*32);
+
 
     // Init internal tracking
     memset(cpu->clobbered_history, 0, sizeof(struct clobbered)*MAX_CLOBBERED);
@@ -78,6 +80,28 @@ void set_reg(struct nios2 *cpu, int reg, uint32_t val)
     if (reg != 0) {
         cpu->regs[reg] = val;
     }
+}
+
+uint32_t get_ctl_reg(struct nios2 *cpu, int reg)
+{
+    return cpu->ctl[reg & 0x1f];
+}
+
+void set_ctl_reg(struct nios2 *cpu, int reg, uint32_t val)
+{
+    cpu->ctl[reg & 0x1f] = val;
+}
+
+uint32_t _get_ctl_reg(long obj, long reg)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    return get_ctl_reg(cpu, reg);
+}
+
+void _set_ctl_reg(long obj, long reg, uint32_t val)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    set_ctl_reg(cpu, reg, val);
 }
 
 void _del_nios2(long obj)
@@ -181,6 +205,7 @@ uint32_t access_mmio(struct nios2 *cpu, uint32_t addr, uint32_t val, int is_stor
     int i;
     for (i=0; i<MAX_MMIOS; i++) {
         if (cpu->mmios[i].addr == addr) {
+            //printf("Found at %d, callback %p\n", i, cpu->mmios[i].callback);
 
             uint32_t ret = 0;
             PyObject *args;
@@ -251,7 +276,7 @@ void _add_mmio(long obj, uint32_t addr, PyObject *callback)
     int i;
     for (i=0; i<MAX_MMIOS; i++) {
         if ((cpu->mmios[i].addr == addr) || cpu->mmios[i].addr == 0) {
-            //printf("Adding MMIO 0x%08x to mmios[%d]\n", addr, i);
+            //printf("Adding MMIO 0x%08x to mmios[%d], callback %p\n", addr, i, callback);
             if (cpu->mmios[i].callback != NULL) {
                 Py_XDECREF(cpu->mmios[i].callback);
             }
@@ -341,7 +366,7 @@ void push_callees(struct nios2 *cpu)
     cpu->callee_stack_head = new;
 }
 
-void mark_clobbered(struct nios2 *cpu, uint32_t pc, int reg_id)
+void mark_clobbered(struct nios2 *cpu, uint32_t pc, int reg_id, int interrupt)
 {
     int i;
     for (i=0; i<cpu->clobbered_idx; i++) {
@@ -354,6 +379,7 @@ void mark_clobbered(struct nios2 *cpu, uint32_t pc, int reg_id)
     // Add to history and log
     cpu->clobbered_history[cpu->clobbered_idx].pc = pc;
     cpu->clobbered_history[cpu->clobbered_idx].reg_id = reg_id;
+    cpu->clobbered_history[cpu->clobbered_idx].interrupt = interrupt;
     //error_printf(cpu, "Function @0x%08x clobbered r%d\n", cpu->pc, reg_id);
     //printf("Function @0x%08x clobbered r%d\n", cpu->pc, reg_id);
     cpu->clobbered_idx++;
@@ -370,9 +396,10 @@ PyObject *_get_clobbered(long obj)
     }
     int i;
     for (i = 0; i<cpu->clobbered_idx; i++) {
-        PyObject *elt = Py_BuildValue("(ll)",
+        PyObject *elt = Py_BuildValue("(lll)",
                                        cpu->clobbered_history[i].pc,
-                                       cpu->clobbered_history[i].reg_id);
+                                       cpu->clobbered_history[i].reg_id,
+                                       cpu->clobbered_history[i].interrupt);
         if (!elt) {
             Py_DECREF(list);
             return NULL;
@@ -383,7 +410,7 @@ PyObject *_get_clobbered(long obj)
 }
 
 // Called on ret
-void check_callees(struct nios2 *cpu)
+void check_callees(struct nios2 *cpu, int interrupt)
 {
     struct callee_saved *head = cpu->callee_stack_head;
 
@@ -394,12 +421,22 @@ void check_callees(struct nios2 *cpu)
     }
 
     // Callee-saved regs to check:
-    int to_check[] = {16, 17, 18, 19, 20, 21, 22, 23, 27, 28, 31};
+    int check_interrupt[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31};
+    int check_func[]      = {16, 17, 18, 19, 20, 21, 22, 23, 27, 28, 31};
+
+    // Default to interrupt
+    int to_check_n = sizeof(check_interrupt)/sizeof(int);
+    int *to_check = check_interrupt;
+    if (!interrupt) {
+        to_check_n = sizeof(check_func)/sizeof(int);
+        to_check = check_func;
+    }
     int i;
-    for (i=0; i<sizeof(to_check)/sizeof(int); i++) {
+    for (i=0; i<to_check_n; i++) {
         int rid = to_check[i];
         if (cpu->regs[rid] != head->regs[rid]) {
-            mark_clobbered(cpu, cpu->pc - 4, rid);  // -4 because we already incremented PC
+            mark_clobbered(cpu, cpu->pc - 4, rid, interrupt);  // -4 because we already incremented PC
         }
     }
 
@@ -408,13 +445,53 @@ void check_callees(struct nios2 *cpu)
     free(head);
 }
 
+void do_interrupt(struct nios2 *cpu)
+{
+
+    //printf("Doing an interrupt at PC 0x%08x\n", cpu->pc);
+    // estatus = status
+    // PIE = 0
+    // U = 0
+    // ea = PC + 4
+    // PC = 0x20
+    uint32_t status = get_ctl_reg(cpu, 0);
+    set_ctl_reg(cpu, 1, status);   // estatus = status
+    set_ctl_reg(cpu, 0, status & ~3);   // PIE/U = 0
+    set_reg(cpu, 29, cpu->pc);  // ea = PC+4 (assume pc+4 already happened)
+    cpu->pc = 0x20;
+    push_callees(cpu);
+}
+
+void _interrupt_cpu(long obj)
+{
+    do_interrupt((struct nios2 *)obj);
+}
+
+// Returns 1 if we are doing an interrupt (abort your current instruction)
+// or 0 otherwise
+int check_interrupt(struct nios2 *cpu)
+{
+    int PIE = get_ctl_reg(cpu, 0) & 1;
+    uint32_t ienable = get_ctl_reg(cpu, 3);
+    uint32_t ipending = get_ctl_reg(cpu, 4);
+
+    if (PIE && (ipending&ienable)) {
+        do_interrupt(cpu);
+        return 1;
+    }
+    return 0;
+}
+
 ////////////////
 // R-types
 void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, uint32_t rC, int imm5)
 {
     switch (opx) {
         case 0x01: // eret
-            break;  // unimplemented
+            check_callees(cpu, 1);
+            set_ctl_reg(cpu, 0, get_ctl_reg(cpu, 1));   // status = estatus
+            cpu->pc = get_reg(cpu, 29); // PC = ea
+            break;
         case 0x02: // roli,
             set_reg(cpu, rC, rotate_l32(get_reg(cpu, rA), imm5));
             break;
@@ -424,7 +501,7 @@ void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, ui
         case 0x04: // flushp,
             break;
         case 0x05: // ret,
-            check_callees(cpu);
+            check_callees(cpu, 0);
             cpu->pc = get_reg(cpu, 31);
             break;
         case 0x06: // nor,
@@ -518,6 +595,9 @@ void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, ui
                 set_reg(cpu, rC, (uint32_t)((int32_t)get_reg(cpu, rA) / ((int32_t)get_reg(cpu, rB))));
             }
             break;
+        case 0x26: // rdctl
+            set_reg(cpu, rC, get_ctl_reg(cpu, imm5));
+            break;
         case 0x27: // mul,
             set_reg(cpu, rC, get_reg(cpu, rA) * get_reg(cpu, rB));
             break;
@@ -531,9 +611,10 @@ void handle_r_type(struct nios2 *cpu, uint32_t opx, uint32_t rA, uint32_t rB, ui
         case 0x29: // initi,
             break;
         case 0x2d: // trap,
+            do_interrupt(cpu);
             break;
         case 0x2e: // wrctl,
-            //set_ctl_reg(cpu, imm5, get_reg(cpu, rA));
+            set_ctl_reg(cpu, imm5, get_reg(cpu, rA));
             break;
         case 0x30: // cmpltu,
             if (get_reg(cpu, rA) < get_reg(cpu, rB)) {
@@ -578,6 +659,11 @@ void one_instr(struct nios2 *cpu)
 
     // Increment PC
     cpu->pc += 4;
+
+    // Maybe interrupt here...
+    if (check_interrupt(cpu) == 1) {
+        return;
+    }
 
     switch (op) {
         /////////////////
