@@ -10,6 +10,7 @@ def check_interrupt_setup(asm):
         br      _start
 
     .section .exceptions, "ax"
+    isr:
         subi    sp, sp, 16
         stw     r4, 0(sp)
         stw     r5, 4(sp)
@@ -78,7 +79,28 @@ def check_interrupt_setup(asm):
         cpu.one_step()
 
     if not(device.passed) or len(cpu.get_clobbered())>0:
-        feedback = 'Interrupt did not occur<br/>\n' + get_debug(cpu) + get_clobbered(cpu)
+        feedback = 'Interrupt did not occur<br/>\n<br/>\n' 
+
+        status = cpu.get_ctl_reg(0)
+        ienable = cpu.get_ctl_reg(3)
+        feedback += 'status:   0x%08x<br/>\n' % status
+        feedback += 'estatus:  0x%08x<br/>\n' % cpu.get_ctl_reg(1)
+        feedback += 'ienable:  0x%08x<br/>\n' % ienable
+        feedback += 'ipending: 0x%08x<br/>\n' % cpu.get_ctl_reg(4)
+
+        feedback += 'Global interrupts (PIE): '
+        if (cpu.get_ctl_reg(0) & 1) == 0:
+            feedback += 'disabled<br/>\n'
+        else:
+            feedback += 'enabled<br/>\n'
+
+        feedback += 'IRQs enabled: '
+        if ienable == 0:
+            feedback += 'none<br/>\n'
+        else:
+            feedback += ', '.join(['IRQ %d' % d for d in range(32) if ienable&(1<<d)]) + '<br/>\n'
+
+        feedback += get_debug(cpu) + get_clobbered(cpu)
         del cpu
         return (False, feedback)
 
