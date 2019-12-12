@@ -67,6 +67,15 @@ def nios2_as(asm):
 
     return obj
 
+def get_clobbered(cpu):
+    feedback = ''
+    for addr,rid,interrupt in cpu.get_clobbered():
+        s = 'function'
+        if interrupt:
+            s = 'interrupt'
+        feedback += 'Error: %s @0x%08x clobbered r%d<br/>\n' % (s, addr, rid)
+    return feedback
+
 def get_debug(cpu, mem_len=0x100, show_stack=False):
     out = '<br/>\n'
     out += cpu.get_error()

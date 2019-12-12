@@ -45,7 +45,7 @@ def check_factorial(asm):
         # in case this is why they failed
         clobs = cpu.get_clobbered()
         if len(clobs) > 0:
-            for pc,rid in clobs:
+            for pc,rid,_ in clobs:
                 if (pc,rid) not in clobbered:
                     extra_info += 'Warning: Function @0x%08x clobbered r%d\n<br/>' % (pc, rid)
                     clobbered.add((pc, rid))

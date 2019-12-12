@@ -88,7 +88,7 @@ def check_caller_saved(asm):
             feedback += 'Passed test case %d<br/>\n' % (i+1)
         else:
             feedback += 'Failed test case %d<br/>\n' % (i+1)
-            for addr,rid in cpu.get_clobbered():
+            for addr,rid,_ in cpu.get_clobbered():
                 feedback += 'Error: function @0x%08x clobbered r%d\n<br/>' % (addr, rid)
             feedback += '<br/>'
             feedback += get_debug(cpu, show_stack=True)
