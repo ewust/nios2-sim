@@ -15,8 +15,11 @@ cdef extern from "nios2.h":
     uint32_t _get_pc(long cpu);
     uint32_t _get_reg(long cpu, long reg);
     void     _set_reg(long cpu, long reg, uint32_t val);
+    uint32_t _get_ctl_reg(long cpu, long reg);
+    void     _set_ctl_reg(long cpu, long reg, uint32_t val);
     object   _get_error(long cpu);
     void     _halt_cpu(long cpu);
+    void     _interrupt_cpu(long cpu);
     object   _get_clobbered(long cpu);
 
 
@@ -57,9 +60,15 @@ def py_set_reg(cpu: long, reg: long, val: long):
     _set_reg(cpu, reg, val)
 def py_get_reg(cpu: long, reg: long):
     return _get_reg(cpu, reg)
+def py_set_ctl_reg(cpu: long, reg: long, val: long):
+    _set_ctl_reg(cpu, reg, val)
+def py_get_ctl_reg(cpu: long, reg: long):
+    return _get_ctl_reg(cpu, reg)
 def py_get_error(cpu: long):
     return _get_error(cpu)
 def py_halt_cpu(cpu: long):
     _halt_cpu(cpu)
+def py_interrupt(cpu: long):
+    _interrupt_cpu(cpu)
 def py_get_clobbered(cpu: long):
     return _get_clobbered(cpu)
