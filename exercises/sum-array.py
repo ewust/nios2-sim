@@ -17,6 +17,7 @@ def check_array_sum(asm):
 
     cpu = Nios2(obj=obj)
 
+    feedback = ''
     cur_test = 1
     for arr, ans in test_cases:
 
