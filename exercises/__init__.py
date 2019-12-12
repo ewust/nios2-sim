@@ -1,6 +1,6 @@
 
 
-from util import nios2_as, get_debug, require_symbols, hotpatch
+from util import nios2_as, get_debug, require_symbols, hotpatch, get_clobbered
 from csim import Nios2
 #from sim import Nios2
 

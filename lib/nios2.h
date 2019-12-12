@@ -20,6 +20,7 @@ struct callee_saved {
 struct clobbered {
     uint32_t    pc;
     int         reg_id;
+    int         interrupt;
 };
 
 struct nios2 {
@@ -28,6 +29,7 @@ struct nios2 {
 
     uint32_t            pc;
     uint32_t            regs[32];
+    uint32_t            ctl[32];    // control registers (Some overriden)
 
     struct callee_saved *callee_stack_head;
 
@@ -62,10 +64,13 @@ void _add_mmio(long cpu, uint32_t addr, PyObject *callback);
 // Control
 void     one_instr(struct nios2 *cpu);
 void     _halt_cpu(long cpu);
+void     _interrupt_cpu(long obj);
 void     _one_step(long obj);
 int      _run_until_halted(long obj, int instr_limit);
 void     _set_pc(long obj, uint32_t val);
 uint32_t _get_pc(long obj);
+uint32_t _get_ctl_reg(long cpu, long reg);
+void     _set_ctl_reg(long cpu, long reg, uint32_t val);
 
 PyObject *_get_clobbered(long obj);
 

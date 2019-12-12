@@ -25,6 +25,7 @@ def check_roll_dice(asm):
         movia   sp, 0x04000000
         subi    sp, sp, 4
 
+        # TODO: some students assuming registers start with a 0 value...could pollute those too
         # polute callee's
         movui    r16, 0xaaa2
         movui    r17, 0xbbb4
@@ -84,7 +85,7 @@ def check_roll_dice(asm):
             feedback += 'Failed test case %d<br/>\n' % (i+1)
             if (cpu.get_reg(2) != sum(tc)):
                 feedback += 'Error: sum returned %d for test case %s. Expected %d' % (cpu.get_reg(2), tc, sum(tc))
-            for addr,rid in cpu.get_clobbered():
+            for addr,rid,_ in cpu.get_clobbered():
                 feedback += 'Error: function @0x%08x clobbered r%d\n<br/>' % (addr, rid)
             feedback += '<br/>'
             feedback += dice.feedback + '<br/>\n'

@@ -45,6 +45,9 @@ class Nios2(object):
     def halt(self):
         pynios2.py_halt_cpu(self.c_obj)
 
+    def interrupt(self):
+        pynios2.py_interrupt(self.c_obj)
+
     def get_clobbered(self):
         return pynios2.py_get_clobbered(self.c_obj)
 
@@ -53,6 +56,11 @@ class Nios2(object):
         return pynios2.py_get_reg(self.c_obj, reg)
     def set_reg(self, reg, val):
         pynios2.py_set_reg(self.c_obj, reg, val)
+
+    def get_ctl_reg(self, reg):
+        return pynios2.py_get_ctl_reg(self.c_obj, reg)
+    def set_ctl_reg(self, reg, val):
+        pynios2.py_set_ctl_reg(self.c_obj, reg, val)
 
     def get_pc(self):
         return pynios2.py_get_pc(self.c_obj)
