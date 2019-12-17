@@ -32,7 +32,7 @@ def check_multiples(asm):
         cpu.write_symbol_word('N', len(arr))
 
         # Run
-        instrs = cpu.run_until_halted(50000)
+        instrs = cpu.run_until_halted(500000)
 
         # Check answer
         their_ans = np.uint32(cpu.get_symbol_word('SUM'))
