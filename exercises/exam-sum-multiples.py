@@ -3,21 +3,11 @@ import numpy as np
 
 ##############
 # Sum the array
-def check_multiples(asm):
+def check_multiples(asm, test_cases):
     obj = nios2_as(asm.encode('utf-8'))
     r = require_symbols(obj, ['SUM', 'ARR', '_start'])
     if r is not None:
         return (False, r)
-
-    test_cases = [
-        [1, 2, 4, 5, 7, 8],
-        [3, 6, 9, 12],
-        [1, 2, 3, 4, 5, 6],
-        [1, 4, 3, 9, 6, 11, -1],
-        [1, 3, -6, 9, 12, -15],
-        [],
-        range(1000),
-        ]
 
     feedback = ''
     cpu = Nios2(obj=obj)
@@ -54,6 +44,20 @@ def check_multiples(asm):
 
     return (True, feedback)
 
+
+
+
+test_cases = [
+        [1, 2, 4, 5, 7, 8],
+        [3, 6, 9, 12],
+        [1, 2, 3, 4, 5, 6],
+        [1, 4, 3, 9, 6, 11, -1],
+        [1, 3, -6, 9, 12, -15],
+        [],
+        range(1000),
+        ]
+
+
 Exercises.addExercise('exam-sum-multiples',
     {
         'public': False,
@@ -74,7 +78,19 @@ SUM: .word 0
 N:   .word 5
 ARR: .word 2, 4, 6, 8, 9
 ''',
-        'checker': check_multiples
+    'checker': lambda asm: return check_multiples(asm, test_cases)
     })
+
+for i,tc in enumerate(test_cases):
+    Exercises.addExercise('exam-sum-multiples-%d'%i,
+        {'public': False,
+        'title': 'Array sum multiples - test case %d' % i,
+        'diff': 'easy'
+        'desc': '''See exam-sum-multiples''',
+        'code':'',
+        'checker': lambda asm: return check_multiples(asm, [tc])})
+
+
+
 
 
