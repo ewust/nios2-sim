@@ -32,6 +32,8 @@ def check_exam_abi(asm):
         movui    r13, 0x4141
         movui    r14, 0x3456
         movui    r15, 0x4af2
+        movui    r16, 0xaaaa
+        movui    r17, 0xbbbb
 
         ldwio   r2, 0(r2)
       broken:
@@ -90,7 +92,7 @@ def check_exam_abi(asm):
         cpu.run_until_halted(1000)
 
         got = cpu.get_reg(2)
-        passed = (got == ans) and len(cpu.get_clobbered())==0
+        passed = (got == ans) and len(cpu.get_clobbered())==0 and len(cpu.get_error())==0
         if passed:
             feedback += 'Passed test case %d<br/>\n' % (i+1)
         else:
