@@ -14,6 +14,7 @@ def check_multiples(asm, test_cases, test_start_idx=1):
 
     cur_test = test_start_idx
     for arr in test_cases:
+        print(cur_test,test_start_idx)
 
         # Reset and initialize
         cpu.reset()
@@ -82,13 +83,14 @@ ARR: .word 2, 4, 6, 8, 9
     })
 
 for i,tc in enumerate(test_cases):
-    Exercises.addExercise('exam-sum-multiples-%d'%i,
+
+    Exercises.addExercise('exam-sum-multiples-%d'%(i+1),
         {'public': False,
-        'title': 'Array sum multiples - test case %d' % i,
+        'title': 'Array sum multiples - test case %d' % (i+1),
         'diff': 'easy',
         'desc': '''See exam-sum-multiples''',
         'code':'',
-        'checker': lambda asm: check_multiples(asm, [tc], i+1)})
+        'checker': lambda asm,ii=i: check_multiples(asm, [tc], ii+1)})
 
 
 
