@@ -37,11 +37,13 @@ def check_multiples(asm, test_cases, test_start_idx=1):
             feedback += '\nSymbols:\n' + cpu.dump_symbols()
             feedback += '</pre>'
 
+            del cpu
             return (False, feedback)
 
         feedback += 'Passed test case %d<br/>\n' % (cur_test)
         cur_test += 1
 
+    del cpu
     return (True, feedback)
 
 
