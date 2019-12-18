@@ -3,7 +3,7 @@ import numpy as np
 
 ##############
 # Sum the array
-def check_multiples(asm, test_cases):
+def check_multiples(asm, test_cases, test_start_idx=1):
     obj = nios2_as(asm.encode('utf-8'))
     r = require_symbols(obj, ['SUM', 'ARR', '_start'])
     if r is not None:
@@ -12,7 +12,7 @@ def check_multiples(asm, test_cases):
     feedback = ''
     cpu = Nios2(obj=obj)
 
-    cur_test = 1
+    cur_test = test_start_idx
     for arr in test_cases:
 
         # Reset and initialize
@@ -88,7 +88,7 @@ for i,tc in enumerate(test_cases):
         'diff': 'easy',
         'desc': '''See exam-sum-multiples''',
         'code':'',
-        'checker': lambda asm: check_multiples(asm, [tc])})
+        'checker': lambda asm: check_multiples(asm, [tc], i+1)})
 
 
 
