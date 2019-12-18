@@ -78,17 +78,17 @@ SUM: .word 0
 N:   .word 5
 ARR: .word 2, 4, 6, 8, 9
 ''',
-    'checker': lambda asm: return check_multiples(asm, test_cases)
+    'checker': lambda asm: check_multiples(asm, test_cases)
     })
 
 for i,tc in enumerate(test_cases):
     Exercises.addExercise('exam-sum-multiples-%d'%i,
         {'public': False,
         'title': 'Array sum multiples - test case %d' % i,
-        'diff': 'easy'
+        'diff': 'easy',
         'desc': '''See exam-sum-multiples''',
         'code':'',
-        'checker': lambda asm: return check_multiples(asm, [tc])})
+        'checker': lambda asm: check_multiples(asm, [tc])})
 
 
 
