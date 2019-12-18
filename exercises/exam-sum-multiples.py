@@ -90,7 +90,7 @@ for i,tc in enumerate(test_cases):
         'diff': 'easy',
         'desc': '''See exam-sum-multiples''',
         'code':'',
-        'checker': lambda asm,ii=i: check_multiples(asm, [tc], ii+1)})
+        'checker': lambda asm,ii=i,test=tc: check_multiples(asm, [test], ii+1)})
 
 
 
