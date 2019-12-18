@@ -14,7 +14,6 @@ def check_multiples(asm, test_cases, test_start_idx=1):
 
     cur_test = test_start_idx
     for arr in test_cases:
-        print(cur_test,test_start_idx)
 
         # Reset and initialize
         cpu.reset()

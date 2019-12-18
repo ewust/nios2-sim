@@ -16,6 +16,23 @@ def check_exam_abi(asm):
         # Cheat and use an MMIO device :p
         movia   r2, 0x13371337
         stwio   r4, 0(r2)
+
+        # Trash caller saved
+        movi    r1, 0x1337
+        movi    r3, 0x1338
+        movi    r4, 0x9999
+        movi    r5, 0x1010
+        movi    r6, 0x2233
+        movi    r7, 0x8765
+        movi    r8, 0x9999
+        movi    r9, 0x1234
+        movi    r10, 0x8875
+        movi    r11, 0x1818
+        movi    r12, 0x4949
+        movi    r13, 0x4141
+        movi    r14, 0x3456
+        movi    r15, 0x4af2
+
         ldwio   r2, 0(r2)
       broken:
         ret
@@ -42,7 +59,7 @@ def check_exam_abi(asm):
 
         def sqrt(self, val=None):
             if val is not None:
-                print('setting val %d' % val)
+                #print('setting val %d' % val)
                 self.val = val
             return int(math.sqrt(self.val))
 
