@@ -86,11 +86,19 @@ def post_moodle(eid,uid):
     if ex is None:
         return 'Exercise ID not found'
 
-    res = ex['checker'](asm)
-    if len(res) == 2:
-        success, feedback = res
-    elif len(res) == 3:
-        success, feedback, _ = res
+    # retry
+    for retry in range(5):
+        try:
+            res = ex['checker'](asm)
+            if len(res) == 2:
+                success, feedback = res
+            elif len(res) == 3:
+                success, feedback, _ = res
+            break
+        except OSError as e:
+            gc.collect()
+            continue
+
 
     # de-HTML
     soup = BeautifulSoup(feedback, features="html.parser")
