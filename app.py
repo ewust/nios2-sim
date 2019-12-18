@@ -96,6 +96,7 @@ def post_moodle(eid,uid):
                 success, feedback, _ = res
             break
         except OSError as e:
+            print('Retrying, got exception: %s'%e)
             gc.collect()
             continue
 
