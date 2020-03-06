@@ -4,6 +4,9 @@ INCLUDE=`python3-config --includes`
 
 default=libnios2.a
 
+install: libnios2.a
+	cp ./libnios2.a /usr/local/lib
+
 libnios2.a: nios2.o
 	ar rcs $@ $^
 
