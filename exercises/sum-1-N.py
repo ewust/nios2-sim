@@ -55,23 +55,22 @@ Exercises.addExercise('sum-1-N',
         'public': True,
         'title': 'Sum integers from 1-N',
         'diff':  'easy',
-        'desc': '''Sum the integers starting from 1 and ending at N.<br/><br/>
-                   Use <code>r4</code> to store <b>N</b> and <code>r2</code> to store the sum.
-                   The instructions to load <b>N</b> has been provided.
+        'desc': '''Sum the integers starting from 1 and ending at N (inclusive).<br/><br/>
+                   <b>N</b> and the instructions to load it into <code>r4</code> have been provided. Store the sum in <code>r2</code>.
                    \n<b>Note: Do not edit the provided code.</b>''',
         'code':'''.text
 _start:
-movia r4, N
-ldw r4, 0(r4)
-movi r2, 0
+    movia   r4, N
+    ldw     r4, 0(r4)
+    movi    r2, 0
 
-# Your code here
+    # Your code here
 
 
-break
+    break
 
 .data
-N: .word 9 
+N:  .word 9
 ''',
         'checker': check_sum_1_to_N
     })
