@@ -871,3 +871,9 @@ void _halt_cpu(long obj)
     struct nios2 *cpu = (struct nios2 *)obj;
     cpu->halted = 1;
 }
+
+void _unhalt_cpu(long obj)
+{
+    struct nios2 *cpu = (struct nios2 *)obj;
+    cpu->halted = 0;
+}

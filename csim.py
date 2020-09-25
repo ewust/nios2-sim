@@ -44,6 +44,8 @@ class Nios2(object):
 
     def halt(self):
         pynios2.py_halt_cpu(self.c_obj)
+    def unhalt(self):
+        pynios2.py_unhalt_cpu(self.c_obj)
 
     def interrupt(self):
         pynios2.py_interrupt(self.c_obj)

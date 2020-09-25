@@ -76,10 +76,12 @@ def get_clobbered(cpu):
         feedback += 'Error: %s @0x%08x clobbered r%d<br/>\n' % (s, addr, rid)
     return feedback
 
-def get_debug(cpu, mem_len=0x100, show_stack=False):
+def get_debug(cpu, mem_len=0x100, show_stack=False, show_error=True):
     out = '<br/>\n'
-    out += cpu.get_error()
-    out += '<br/>Memory:<br/><pre>'
+    if show_error:
+        out += cpu.get_error()
+        out += '<br/>\n'
+    out += 'Memory:<br/><pre>'
     out += cpu.dump_mem(0, mem_len)
     out += '\nSymbols:\n' + cpu.dump_symbols()
     out += '</pre>'
@@ -91,6 +93,15 @@ def get_debug(cpu, mem_len=0x100, show_stack=False):
         diff = 0x04000000 - (sp-0x80)
         out += cpu.dump_mem(sp-0x80, min(0x100, diff))
         out += '\n</pre>'
+    return out
+
+def get_regs(cpu):
+    out = '<br/>\n'
+    out += '<pre>'
+    out += ' pc = 0x%08x\n\n' % cpu.get_pc()
+    for i in range(32):
+        out += '  % 3s = 0x%08x\n' % ('r%d'%i, cpu.get_reg(i))
+    out += '\n</pre>'
     return out
 
 def hotpatch(obj, new_start_asm):

@@ -64,6 +64,7 @@ void _add_mmio(long cpu, uint32_t addr, PyObject *callback);
 // Control
 void     one_instr(struct nios2 *cpu);
 void     _halt_cpu(long cpu);
+void     _unhalt_cpu(long cpu);
 void     _interrupt_cpu(long obj);
 void     _one_step(long obj);
 int      _run_until_halted(long obj, int instr_limit);
