@@ -44,14 +44,14 @@ def check_led_sw_partial(asm, do_tcs=False):
             if self.leds != expected:
                 if (self.leds&0x3ff) != expected: # fail only if even masked it wouldn't have worked
                     self.feedback += 'Failed test case %d: ' % (self.cur_test+1)
-                    self.feedback += 'LEDs set to %s (should be %s) for BTN %s' %\
+                    self.feedback += 'LEDs set to %s (should be %s) for SW %s' %\
                             (bin(self.leds&0x3ff), bin(expected), bin(sw))
                     self.feedback += get_debug(cpu, show_error=False)
                     self.failed = True
                     cpu.halt()
                     return
                 self.feedback += 'Test case %d: ' % (self.cur_test+1)
-                self.feedback += 'Warning: wrote 0x%08x (instead of 0x%08x) to LEDs for BTN %s;' %\
+                self.feedback += 'Warning: wrote 0x%08x (instead of 0x%08x) to LEDs for SW %s;' %\
                         (self.leds, expected, bin(sw))
                 self.feedback += ' upper bits ignored.<br/>\n'
             self.feedback += 'Passed test case %d<br/>\n' % (self.cur_test+1)
