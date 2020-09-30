@@ -21,7 +21,10 @@ def check_led_sw(asm):
             self.failed = False
             self.leds = 0
 
-        def write_led(self, val):
+        def write_led(self, val=None):
+            if val is None:
+                self.feedback += 'Warning: tried to read LEDs<br/>\n'
+                return
             self.leds = val
             #cpu.halt()
 
