@@ -80,8 +80,12 @@ def check_uart(asm):
                 err = cpu.get_error()
                 self.feedback += 'Failed test case %d\n<br/>' % test_no
                 self.feedback += 'Name: <code>%s</code><br/>' % html.escape(self.name)
-                self.feedback += 'Got back <code>%s</code> %s<br/>' % (html.escape(self.recvd), self.recvd.encode('ascii').hex())
+                self.feedback += 'Got back <code>%s</code> %s<br/>' % (html.escape(self.recvd), self.recvd.encode('utf8').hex())
+                #self.feedback += 'Got back <code>%s</code> %s<br/>' % (html.escape(self.recvd), self.recvd.hex())
+                #self.recvd.encode('ascii').hex())
+
                 self.feedback += get_debug(cpu)
+                self.feedback += get_regs(cpu)
                 self.feedback += 'tx_fifo: %s <code>%s</code>\n<br/>' % \
                         (list(self.tx_fifo), html.escape(''.join([chr(c) for c in self.tx_fifo])))
                 self.feedback += 'rx_fifo: %s <code>%s</code>\n<br/>' % \
