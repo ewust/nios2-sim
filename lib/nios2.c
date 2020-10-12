@@ -325,7 +325,7 @@ uint8_t loadbyte(struct nios2 *cpu, uint32_t addr)
 void storebyte(struct nios2 *cpu, uint32_t addr, uint8_t val)
 {
     uint8_t *p = (uint8_t *)cpu->mem;
-    uint32_t off = addr/2;
+    uint32_t off = addr;
 
     if (addr > cpu->mem_len) {
         access_mmio(cpu, addr, val, 1);
