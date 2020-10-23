@@ -27,6 +27,9 @@ def check_factorial(asm):
     '''
     hp = new_start + asm    # asm.replace('roll:', '_roll:') hmm..
     nobj = nios2_as(hp.encode('utf-8'))
+    r = require_symbols(nobj, ['_start', 'TEST_N', 'factorial'])
+    if r is not None:
+        return (False, r)
     cpu = Nios2(obj=nobj)
 
     tests = [(3, 6), (5, 120), (10, 3628800), (12, 479001600)]

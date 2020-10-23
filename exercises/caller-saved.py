@@ -92,7 +92,9 @@ def check_caller_saved(asm):
                 feedback += 'Error: function @0x%08x clobbered r%d\n<br/>' % (addr, rid)
             feedback += '<br/>'
             feedback += get_debug(cpu, show_stack=True)
+            del cpu
             return (False, feedback, None)
+    del cpu
     return (True, feedback, None)
 
 
