@@ -22,7 +22,7 @@ def check_multiples(asm, test_cases, test_start_idx=1):
         cpu.write_symbol_word('N', len(arr))
 
         # Run
-        instrs = cpu.run_until_halted(500000)
+        instrs = cpu.run_until_halted(5000000)
 
         # Check answer
         their_ans = np.uint32(cpu.get_symbol_word('SUM'))
