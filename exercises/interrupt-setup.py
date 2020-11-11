@@ -3,8 +3,12 @@
 from exercises import *
 
 ##########
-# Set the LEDs to all on
-def check_interrupt_setup(asm):
+# test_idx
+#   = 0 - full check (did interrupt happen?)
+#   = 1 - check for MMIO set
+#   = 2 - check for ienable set
+#   = 3 - check for global interrupts
+def check_interrupt_setup(asm, test_idx=0):
     new_asm = '''
     .section .reset, "ax"
         br      _start
@@ -78,7 +82,17 @@ def check_interrupt_setup(asm):
     for i in range(1000):
         cpu.one_step()
 
-    if not(device.passed) or len(cpu.get_clobbered())>0:
+
+    passed = device.passed and len(cpu.get_clobbered())==0
+    if test_idx == 1: # only check MMIO
+        passed = (device.imask == 1)
+    elif test_idx == 2: # only check ienable
+        passed = ((cpu.get_ctl_reg(3)&(1<<3))!=0)
+    elif test_idx == 3: # only check status
+        passed = ((cpu.get_ctl_reg(0)&1)==1)
+
+
+    if not(passed):
         feedback = 'Interrupt did not occur<br/>\n<br/>\n' 
 
         status = cpu.get_ctl_reg(0)
@@ -105,7 +119,7 @@ def check_interrupt_setup(asm):
         return (False, feedback)
 
     del cpu
-    return (True, 'Passed test case 1')
+    return (True, 'Passed test case %d'%test_idx)
 
 Exercises.addExercise('interrupt-setup',
     {
@@ -130,3 +144,13 @@ loop:
 ''',
         'checker': check_interrupt_setup
     })
+
+for i in range(1,4):
+    Exercises.addExercise('interrupt-setup-%d'%i,
+        {'public':False,
+        'title': 'Interrupt Setup - test %d'%i,
+        'diff': 'medium',
+        'desc': '',
+        'code':'',
+        'checker': lambda asm,tc=i: check_interrupt_setup(asm, tc) })
+
