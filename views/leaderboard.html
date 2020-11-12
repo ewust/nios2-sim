@@ -5,10 +5,18 @@
 
         <div class="my-3 p-3 bg-white rounded box-shadow">
 
+            <h2>Sorting competition</h2>
+            <p>Write nios2 assembly function <code>sort</code> that sorts an array. Your function will be given two parameters: a pointer to an array of signed integers, and a length of the array (in number of words). Your function will have the function prototype <code>void sort(int *array, int length);</code>.<br/><br/>
+
+            You may test your code <a href="/nios2/examples/sort-fn">here</a> before submitting your solution and your IdentiKey below. We will run your code against several test cases, and then have it sort a 3000-element list. Try to make your code execute as few instructions as possible!
+
+
           {% if our_rank is defined %}
 
           <div class="alert alert-success" role="alert">
-                  Your code ran in <b>{{ instrs }} instructions</b>, making it ranked <b>#{{ our_rank }}</b>.
+                  Your code ran in <b>{{ "{:,}".format(instrs) }} instructions</b>, making it ranked <b>#{{ our_rank }}</b>. <br/><br/>
+
+                  It took {{ "%.3f"|format(code_delta) }} seconds to sort a list with 3000 elements.
           </div>
 
           {% endif %}
@@ -20,7 +28,7 @@
           </div>
           {% endif %}
 
-          <h2>Leaderboard</h2>
+          <h2>Top solutions</h2>
           <table class="table table-bordered">
             <thead>
              <tr>
@@ -42,7 +50,7 @@
             </tbody>
           </table>
 
-          <h3>Submit solution</h3>
+          <h2>Submit solution</h2>
           <form action="/nios2/leaderboard" method="POST">
             <div class="form-group">
               <label for="user">Identikey</label>
