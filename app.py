@@ -208,10 +208,7 @@ def leaderboard(db):
    return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
             'user': request.get_cookie('user'),
             'code': '',
-            'instrs': 0,
             })
-
-
 
 @get('/nios2')
 @jinja2_view('index.html')
