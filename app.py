@@ -114,7 +114,7 @@ def post_moodle(eid,uid):
         return 'Incorrect:\n%s' % (feedback)
 
 
-@post('/nios2/leader')
+@post('/nios2/leaderboard')
 def post_leader(db):
     gc.collect()
     asm = request.forms.get('asm')
