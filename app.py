@@ -6,6 +6,7 @@ import json
 import gc
 from bs4 import BeautifulSoup
 import bottle.ext.sqlite
+import time
 
 from util import nios2_as
 from exercises import Exercises
@@ -117,6 +118,7 @@ def post_moodle(eid,uid):
 @post('/nios2/leaderboard')
 def post_leader(db):
     gc.collect()
+    client_ip = request.environ.get('REMOTE_ADDR')
     asm = request.forms.get('asm')
     user = request.forms.get('user')
     response.set_cookie('user', user)
@@ -124,12 +126,23 @@ def post_leader(db):
     #TODO: Make sure user is abcd1234 / in class?
 
 
-    # Check if their code passes
-    #ex = Exercises.getExercise('sort-fn')
-    #res = ex['checker'](asm)
+    # Check if their code passes basic tests
+    ex = Exercises.getExercise('sort-fn')
+    res = ex['checker'](asm)
 
+    if not(res[0]):
+        return jinja2_template('leaderboard.html',
+            {'leaders': get_leaders(db),
+             'user': user,
+             'code': asm,
+             'feedback': '<b>Your code does not pass the <a href="/nios2/examples/sort-fn">normal test cases</a>. Please pass those before attempting to submit here.</b><br/><br/>\n\n' + res[1]
+             })
+
+    start = time.time()
+    # Now check the main one
     ex = Exercises.getExercise('sort-fn-contest')
     success, feedback, instrs = ex['checker'](asm)
+    delta = time.time() - start
 
     if not(success):
         return jinja2_template('leaderboard.html',
@@ -137,6 +150,7 @@ def post_leader(db):
             'user': user,
             'code': asm,
             'feedback': feedback,
+            'code_delta': delta,
             })
 
     # Get number of instructions in program
@@ -145,7 +159,7 @@ def post_leader(db):
 
 
     # Passed tests, now see how it does compared to others!
-    db.execute("INSERT INTO leaders (user,instructions,size,public,timestamp,code) VALUES (?,?,?,?,strftime('%s', 'now'),?)", (user, instrs, size, False, asm))
+    db.execute("INSERT INTO leaders (user,ip,instructions,size,public,timestamp,code) VALUES (?,?,?,?,?,strftime('%s', 'now'),?)", (user, client_ip, instrs, size, False, asm))
     db.commit()
 
     #row = db.execute('SELECT irank FROM (SELECT user, instructions, RANK() OVER ( ORDER BY instructions ASC) irank FROM leaders) WHERE user=? AND instructions=? ORDER BY irank ASC LIMIT 1', (user, instrs))
@@ -160,6 +174,7 @@ def post_leader(db):
             'code': asm,
             'our_rank': rank,
             'instrs': instrs,
+            'code_delta': delta,
             })
 
 
