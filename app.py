@@ -197,10 +197,11 @@ def get_leaders(db, N=10):
     rows = db.execute('SELECT user,min(instructions) as ins,size,timestamp FROM leaders GROUP BY user ORDER BY ins,timestamp ASC LIMIT 10')
     leaders = []
     for row in rows:
+        time_s = datetime.fromtimestamp(row[3]).strftime('%b %d, %Y %-I:%M%p').replace('AM', 'am').replace('PM', 'pm')
         leaders.append({'user': row[0],
                 'instrs': row[1],
                 'size': row[2],
-                'time': datetime.fromtimestamp(row[3]).strftime('%b %d, %Y %H:%M:%S')})
+                'time': time_s})
     return leaders
 
 #@jinja2_view('leaderboard.html')
