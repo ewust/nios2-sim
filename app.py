@@ -179,7 +179,7 @@ def post_leader(db):
     db.commit()
 
     # Find our rank
-    row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<?', (instrs,)).fetchone()
+    row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<=? and user!=?', (instrs,user)).fetchone()
     rank = row[0]
     rank += 1
 
