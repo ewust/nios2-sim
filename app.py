@@ -173,13 +173,14 @@ def post_leader(db):
     obj = nios2_as(asm.encode('utf-8'))
     size = len(obj['prog'])/8
 
+    delta_us = int(delta*1000000)
 
     # Passed tests, now see how it does compared to others!
-    db.execute("INSERT INTO leaders (user,ip,instructions,size,public,timestamp,code) VALUES (?,?,?,?,?,strftime('%s', 'now'),?)", (user, client_ip, instrs, size, False, asm))
+    db.execute("INSERT INTO leaders (user,ip,instructions,size,public,timestamp,code,time_us) VALUES (?,?,?,?,?,strftime('%s', 'now'),?,?)", (user, client_ip, instrs, size, False, asm, delta_us))
     db.commit()
 
     # Find our rank
-    row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<=? and user!=?', (instrs,user)).fetchone()
+    row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<? or (ins=? and user!=?)', (instrs,instrs,user)).fetchone()
     rank = row[0]
     rank += 1
 
@@ -205,8 +206,11 @@ def get_leaders(db, N=10):
 #@jinja2_view('leaderboard.html')
 @get('/nios2/leaderboard')
 def leaderboard(db):
-   return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
-            'user': request.get_cookie('user'),
+    user = request.get_cookie('user')
+    if user is None:
+        user = ''
+    return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
+            'user': user,
             'code': '',
             })
 
