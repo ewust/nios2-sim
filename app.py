@@ -8,9 +8,18 @@ from bs4 import BeautifulSoup
 import bottle.ext.sqlite
 import time
 from datetime import datetime
+import html
 
 from util import nios2_as
 from exercises import Exercises
+
+from bottle import Jinja2Template
+
+Jinja2Template.settings = {
+'autoescape': True,
+}
+
+
 
 app = application = default_app()
 plugin = ext.sqlite.Plugin(dbfile='./leaderboard.db')
@@ -124,7 +133,18 @@ def post_leader(db):
     user = request.forms.get('user')
     response.set_cookie('user', user)
 
+    def leader_template(user=user, code=asm, feedback=None):
+        return jinja2_template('leaderboard.html',
+                {'leaders': get_leaders(db),
+                 'user': user,
+                 'code': code,
+                 'feedback': feedback,})
+
     #TODO: Make sure user is abcd1234 / in class?
+    row = db.execute('SELECT count(*) FROM users where user=?', (user,)).fetchone()
+    n_users = row[0]
+    if n_users < 1:
+        return leader_template(feedback='Unknown IdentiKey <b>' + html.escape(user) + '</b>. Please contact the instructor if you think this is an error')
 
 
     # Check if their code passes basic tests
@@ -132,12 +152,7 @@ def post_leader(db):
     res = ex['checker'](asm)
 
     if not(res[0]):
-        return jinja2_template('leaderboard.html',
-            {'leaders': get_leaders(db),
-             'user': user,
-             'code': asm,
-             'feedback': '<b>Your code does not pass the <a href="/nios2/examples/sort-fn">normal test cases</a>. Please pass those before attempting to submit here.</b><br/><br/>\n\n' + res[1]
-             })
+        return leader_tempate(feedback='<b>Your code does not pass the <a href="/nios2/examples/sort-fn">normal test cases</a>. Please pass those before attempting to submit here.</b><br/><br/>\n\n' + res[1])
 
     start = time.time()
     # Now check the main one
@@ -163,14 +178,12 @@ def post_leader(db):
     db.execute("INSERT INTO leaders (user,ip,instructions,size,public,timestamp,code) VALUES (?,?,?,?,?,strftime('%s', 'now'),?)", (user, client_ip, instrs, size, False, asm))
     db.commit()
 
-    #row = db.execute('SELECT irank FROM (SELECT user, instructions, RANK() OVER ( ORDER BY instructions ASC) irank FROM leaders) WHERE user=? AND instructions=? ORDER BY irank ASC LIMIT 1', (user, instrs))
+    # Find our rank
     row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<?', (instrs,)).fetchone()
     rank = row[0]
     rank += 1
 
-    leaders = get_leaders(db)
-
-    return jinja2_template('leaderboard.html', {'leaders': leaders,
+    return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
             'user': request.get_cookie('user'),
             'code': asm,
             'our_rank': rank,

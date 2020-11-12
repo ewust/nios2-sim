@@ -24,7 +24,7 @@
 
           {% if feedback is defined %}
           <div class="alert alert-danger" role="alert">
-                  Error: {{ feedback }}
+                  Error: {{ feedback|safe }}
           </div>
           {% endif %}
 
