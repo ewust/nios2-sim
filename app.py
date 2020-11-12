@@ -152,7 +152,7 @@ def post_leader(db):
     res = ex['checker'](asm)
 
     if not(res[0]):
-        return leader_tempate(feedback='<b>Your code does not pass the <a href="/nios2/examples/sort-fn">normal test cases</a>. Please pass those before attempting to submit here.</b><br/><br/>\n\n' + res[1])
+        return leader_template(feedback='<b>Your code does not pass the <a href="/nios2/examples/sort-fn">normal test cases</a>. Please pass those before attempting to submit here.</b><br/><br/>\n\n' + res[1])
 
     start = time.time()
     # Now check the main one
