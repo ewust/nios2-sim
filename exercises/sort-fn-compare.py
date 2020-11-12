@@ -31,7 +31,7 @@ def check_sort_fn_contest(asm):
 
     cpu.reset()
     random.seed(12701296428285791133)
-    tc = [random.randint(-2000,2000) for i in range(3000)]
+    tc = [random.randint(-2000,2000) for i in range(2500)]
 
     ans = sorted(tc)
     cpu.write_symbol_word('N', len(tc))
