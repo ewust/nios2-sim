@@ -5,7 +5,7 @@
 
         <div class="my-3 p-3 bg-white rounded box-shadow">
           <h2>{{ exercise_title }}</h2>
-          <p>{{ exercise_desc }}</p>
+          <p>{{ exercise_desc|safe }}</p>
 
           {% if asm_error|length %}
             <div class="alert alert-danger" role="alert">
@@ -18,13 +18,13 @@
             {% if success is sameas true %}
               <div class="alert alert-success" role="alert">
                 <h3>Passed!</h3>
-                {{ feedback }}<br/>
+                {{ feedback|safe }}<br/>
                 {{ extra_info }}
               </div>
             {% else %}
               <div class="alert alert-danger" role="alert">
                       <h3>Test case failed</h3>
-                      {{ feedback }}<br/><br/>Try Again!<br/>
+                      {{ feedback|safe }}<br/><br/>Try Again!<br/>
                       {{ extra_info }}
               </div>
             {% endif %}

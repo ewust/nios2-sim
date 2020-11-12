@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <main role="main" class="container">
+
+        <div class="my-3 p-3 bg-white rounded box-shadow">
+
+            <h2>Sorting competition</h2>
+            <p>Write nios2 assembly function <code>sort</code> that sorts an array. Your function will be given two parameters: a pointer to an array of signed integers, and a length of the array (in number of words). Your function will have the function prototype <code>void sort(int *array, int length);</code>.<br/><br/>
+
+            You may test your code <a href="/nios2/examples/sort-fn">here</a> before submitting your solution and your IdentiKey below. We will run your code against several test cases, and then have it sort a long list, and count how many instructions it takes for your code to sort it. Try to make your code execute as few instructions as possible!
+
+
+          {% if our_rank is defined %}
+
+          <div class="alert alert-success" role="alert">
+                  Your code ran in <b>{{ "{:,}".format(instrs) }} instructions</b>, making it ranked <b>#{{ our_rank }}</b>. <br/><br/>
+
+                  It took {{ "%.3f"|format(code_delta) }} seconds to sort a list with 2500 elements.
+          </div>
+
+          {% endif %}
+
+
+          {% if feedback is defined %}
+          <div class="alert alert-danger" role="alert">
+                  Error: {{ feedback|safe }}
+          </div>
+          {% endif %}
+
+          <h2>Top solutions</h2>
+          <table class="table table-bordered">
+            <thead>
+             <tr>
+              <th>Rank #</th>
+              <th>IdentiKey</th>
+              <th>Executed Instructions</th>
+              <th>Code Size (instructions)</th>
+              <th>Submited</th>
+             </tr>
+            </thead>
+            <tbody>
+              {% for r in leaders %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ r.user | e }}</td>
+                  <td>{{ "{:,}".format(r.instrs) }}</td>
+                  <td>{{ "{:,}".format(r.size) }}</td>
+                  <td>{{ r.time }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <h2>Submit solution</h2>
+          <form action="/nios2/leaderboard" method="POST">
+            <div class="form-group">
+              <label for="user">Identikey</label>
+              <input type="text" name="user" value="{{ user }}" /><br/>
+
+              <label for="assembly">Your Code</label>
+              <div style="border: 1px solid #000"><textarea name="asm" id="assembly" class="form-control" rows="40" style="font-family:monospace; border: 1px solid #000;">{{ code }}</textarea></div>
+              <br/>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+          </form>
+        </div>
+
+	  </main>
+{% endblock %}
+
+
+{% block foot %}
+    <script src="/nios2/static/codemirror-nios2.js"></script>
+    <script>
+      var editor = CodeMirror.fromTextArea(document.getElementById('assembly'), {
+        lineNumbers: true,
+        mode: {name: "gas", architecture: "nios2"},
+      });
+        editor.setSize(null, '750px');
+    </script>
+{% endblock %}

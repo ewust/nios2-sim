@@ -1,15 +1,29 @@
 #!/usr/bin/env python
 import sys, os, bottle
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file
+from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file, ext, jinja2_template, response
 import json
 import gc
 from bs4 import BeautifulSoup
+import bottle.ext.sqlite
+import time
+from datetime import datetime
+import html
 
 from util import nios2_as
 from exercises import Exercises
 
+from bottle import Jinja2Template
+
+Jinja2Template.settings = {
+'autoescape': True,
+}
+
+
+
 app = application = default_app()
+plugin = ext.sqlite.Plugin(dbfile='./leaderboard.db')
+app.install(plugin)
 
 
 @post('/nios2/as')
@@ -110,6 +124,91 @@ def post_moodle(eid,uid):
     else:
         return 'Incorrect:\n%s' % (feedback)
 
+
+@post('/nios2/leaderboard')
+def post_leader(db):
+    gc.collect()
+    client_ip = request.environ.get('REMOTE_ADDR')
+    asm = request.forms.get('asm')
+    user = request.forms.get('user')
+    response.set_cookie('user', user)
+
+    def leader_template(user=user, code=asm, feedback=None):
+        return jinja2_template('leaderboard.html',
+                {'leaders': get_leaders(db),
+                 'user': user,
+                 'code': code,
+                 'feedback': feedback,})
+
+    #TODO: Make sure user is abcd1234 / in class?
+    row = db.execute('SELECT count(*) FROM users where user=?', (user,)).fetchone()
+    n_users = row[0]
+    if n_users < 1:
+        return leader_template(feedback='Unknown IdentiKey <b>' + html.escape(user) + '</b>. Please contact the instructor if you think this is an error')
+
+
+    # Check if their code passes basic tests
+    ex = Exercises.getExercise('sort-fn')
+    res = ex['checker'](asm)
+
+    if not(res[0]):
+        return leader_tempate(feedback='<b>Your code does not pass the <a href="/nios2/examples/sort-fn">normal test cases</a>. Please pass those before attempting to submit here.</b><br/><br/>\n\n' + res[1])
+
+    start = time.time()
+    # Now check the main one
+    ex = Exercises.getExercise('sort-fn-contest')
+    success, feedback, instrs = ex['checker'](asm)
+    delta = time.time() - start
+
+    if not(success):
+        return jinja2_template('leaderboard.html',
+            {'leaders': get_leaders(db),
+            'user': user,
+            'code': asm,
+            'feedback': feedback,
+            'code_delta': delta,
+            })
+
+    # Get number of instructions in program
+    obj = nios2_as(asm.encode('utf-8'))
+    size = len(obj['prog'])/8
+
+
+    # Passed tests, now see how it does compared to others!
+    db.execute("INSERT INTO leaders (user,ip,instructions,size,public,timestamp,code) VALUES (?,?,?,?,?,strftime('%s', 'now'),?)", (user, client_ip, instrs, size, False, asm))
+    db.commit()
+
+    # Find our rank
+    row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<?', (instrs,)).fetchone()
+    rank = row[0]
+    rank += 1
+
+    return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
+            'user': request.get_cookie('user'),
+            'code': asm,
+            'our_rank': rank,
+            'instrs': instrs,
+            'code_delta': delta,
+            })
+
+
+def get_leaders(db, N=10):
+    rows = db.execute('SELECT user,min(instructions) as ins,size,timestamp FROM leaders GROUP BY user ORDER BY ins,timestamp ASC LIMIT 10')
+    leaders = []
+    for row in rows:
+        leaders.append({'user': row[0],
+                'instrs': row[1],
+                'size': row[2],
+                'time': datetime.fromtimestamp(row[3]).strftime('%b %d, %Y %H:%M:%S')})
+    return leaders
+
+#@jinja2_view('leaderboard.html')
+@get('/nios2/leaderboard')
+def leaderboard(db):
+   return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
+            'user': request.get_cookie('user'),
+            'code': '',
+            })
 
 @get('/nios2')
 @jinja2_view('index.html')
