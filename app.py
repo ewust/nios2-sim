@@ -7,6 +7,7 @@ import gc
 from bs4 import BeautifulSoup
 import bottle.ext.sqlite
 import time
+from datetime import datetime
 
 from util import nios2_as
 from exercises import Exercises
@@ -179,10 +180,13 @@ def post_leader(db):
 
 
 def get_leaders(db, N=10):
-    rows = db.execute('SELECT user,min(instructions) as ins,size FROM leaders GROUP BY user ORDER BY ins ASC LIMIT 10')
+    rows = db.execute('SELECT user,min(instructions) as ins,size,timestamp FROM leaders GROUP BY user ORDER BY ins,timestamp ASC LIMIT 10')
     leaders = []
     for row in rows:
-        leaders.append({'user': row[0], 'instrs': row[1], 'size': row[2]})
+        leaders.append({'user': row[0],
+                'instrs': row[1],
+                'size': row[2],
+                'time': datetime.fromtimestamp(row[3]).strftime('%b %d, %Y %H:%M:%S')})
     return leaders
 
 #@jinja2_view('leaderboard.html')

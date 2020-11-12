@@ -36,6 +36,7 @@
               <th>IdentiKey</th>
               <th>Executed Instructions</th>
               <th>Code Size (instructions)</th>
+              <th>Submited</th>
              </tr>
             </thead>
             <tbody>
@@ -45,6 +46,7 @@
                   <td>{{ r.user | e }}</td>
                   <td>{{ "{:,}".format(r.instrs) }}</td>
                   <td>{{ "{:,}".format(r.size) }}</td>
+                  <td>{{ r.time }}</td>
                 </tr>
               {% endfor %}
             </tbody>
