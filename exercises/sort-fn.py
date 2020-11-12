@@ -35,7 +35,7 @@ def check_sort_fn(asm):
              [8, -1, 11, 14, 12, 14, 0],
              [9, -2, 5, 0, -2, 0, -1, -4, 1, 9, 10, 6, -3, 7, 5, 10, 9, -2, 2, 9, 0, 3, -3, 7, 7, 6, -5, -2, -1, -4]]
 
-    final_test = [random.randint(-1000,1000) for i in range(2000)]
+    final_test = [random.randint(-100,100) for i in range(100)]
     tests += [final_test]
 
     feedback = ''
@@ -48,7 +48,7 @@ def check_sort_fn(asm):
         for i,t in enumerate(tc):
             cpu.write_symbol_word('ARR', t, offset=i*4)
 
-        instrs = cpu.run_until_halted(300000000)
+        instrs = cpu.run_until_halted(1000000)
         tot_instr += instrs
 
         # Read back out SORT
