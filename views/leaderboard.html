@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <main role="main" class="container">
+
+        <div class="my-3 p-3 bg-white rounded box-shadow">
+
+          {% if our_rank is defined %}
+
+          <div class="alert alert-success" role="alert">
+                  Your code ran in <b>{{ instrs }} instructions</b>, making it ranked <b>#{{ our_rank }}</b>.
+          </div>
+
+          {% endif %}
+
+
+          {% if feedback is defined %}
+          <div class="alert alert-danger" role="alert">
+                  Error: {{ feedback }}
+          </div>
+          {% endif %}
+
+          <h2>Leaderboard</h2>
+          <table class="table table-bordered">
+            <thead>
+             <tr>
+              <th>Rank #</th>
+              <th>IdentiKey</th>
+              <th>Executed Instructions</th>
+              <th>Code Size (instructions)</th>
+             </tr>
+            </thead>
+            <tbody>
+              {% for r in leaders %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ r.user | e }}</td>
+                  <td>{{ "{:,}".format(r.instrs) }}</td>
+                  <td>{{ "{:,}".format(r.size) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <h3>Submit solution</h3>
+          <form action="/nios2/leader" method="POST">
+            <div class="form-group">
+              <label for="user">Identikey</label>
+              <input type="text" name="user" value="{{ user }}" /><br/>
+
+              <label for="assembly">Your Code</label>
+              <div style="border: 1px solid #000"><textarea name="asm" id="assembly" class="form-control" rows="40" style="font-family:monospace; border: 1px solid #000;">{{ code }}</textarea></div>
+              <br/>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+          </form>
+        </div>
+
+	  </main>
+{% endblock %}
+
+
+{% block foot %}
+    <script src="/nios2/static/codemirror-nios2.js"></script>
+    <script>
+      var editor = CodeMirror.fromTextArea(document.getElementById('assembly'), {
+        lineNumbers: true,
+        mode: {name: "gas", architecture: "nios2"},
+      });
+        editor.setSize(null, '750px');
+    </script>
+{% endblock %}

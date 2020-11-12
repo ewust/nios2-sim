@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 import sys, os, bottle
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file
+from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file, ext, jinja2_template, response
 import json
 import gc
 from bs4 import BeautifulSoup
+import bottle.ext.sqlite
 
 from util import nios2_as
 from exercises import Exercises
 
 app = application = default_app()
+plugin = ext.sqlite.Plugin(dbfile='./leaderboard.db')
+app.install(plugin)
 
 
 @post('/nios2/as')
@@ -109,6 +112,73 @@ def post_moodle(eid,uid):
         return 'Suite %s Passed:\n%s' % (uid, feedback)
     else:
         return 'Incorrect:\n%s' % (feedback)
+
+
+@post('/nios2/leader')
+def post_leader(db):
+    gc.collect()
+    asm = request.forms.get('asm')
+    user = request.forms.get('user')
+    response.set_cookie('user', user)
+
+    #TODO: Make sure user is abcd1234 / in class?
+
+
+    # Check if their code passes
+    #ex = Exercises.getExercise('sort-fn')
+    #res = ex['checker'](asm)
+
+    ex = Exercises.getExercise('sort-fn-contest')
+    success, feedback, instrs = ex['checker'](asm)
+
+    if not(success):
+        return jinja2_template('leaderboard.html',
+            {'leaders': get_leaders(db),
+            'user': user,
+            'code': asm,
+            'feedback': feedback,
+            })
+
+    # Get number of instructions in program
+    obj = nios2_as(asm.encode('utf-8'))
+    size = len(obj['prog'])/8
+
+
+    # Passed tests, now see how it does compared to others!
+    db.execute("INSERT INTO leaders (user,instructions,size,public,timestamp,code) VALUES (?,?,?,?,strftime('%s', 'now'),?)", (user, instrs, size, False, asm))
+    db.commit()
+
+    #row = db.execute('SELECT irank FROM (SELECT user, instructions, RANK() OVER ( ORDER BY instructions ASC) irank FROM leaders) WHERE user=? AND instructions=? ORDER BY irank ASC LIMIT 1', (user, instrs))
+    row = db.execute('SELECT COUNT(*) FROM (SELECT user, min(instructions) as ins FROM leaders GROUP BY user ORDER BY ins ASC) WHERE ins<?', (instrs,)).fetchone()
+    rank = row[0]
+    rank += 1
+
+    leaders = get_leaders(db)
+
+    return jinja2_template('leaderboard.html', {'leaders': leaders,
+            'user': request.get_cookie('user'),
+            'code': asm,
+            'our_rank': rank,
+            'instrs': instrs,
+            })
+
+
+def get_leaders(db, N=10):
+    rows = db.execute('SELECT user,min(instructions) as ins,size FROM leaders GROUP BY user ORDER BY ins ASC LIMIT 10')
+    leaders = []
+    for row in rows:
+        leaders.append({'user': row[0], 'instrs': row[1], 'size': row[2]})
+    return leaders
+
+#@jinja2_view('leaderboard.html')
+@get('/nios2/leaderboard')
+def leaderboard(db):
+   return jinja2_template('leaderboard.html', {'leaders': get_leaders(db),
+            'user': request.get_cookie('user'),
+            'code': '',
+            'instrs': 0,
+            })
+
 
 
 @get('/nios2')
