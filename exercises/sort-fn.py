@@ -17,6 +17,15 @@ def check_sort_fn(asm):
         movia   r5, N
         ldw     r5, 0(r5)
 
+        # setup function clobbers
+        movui    r16, 0x1c84
+        movui    r17, 0x48cf
+        movui    r18, 0x99f2
+        movui    r19, 0x086d
+        movui    r20, 0xac72
+        movui    r21, 0xb773
+        movui    r22, 0xc91e
+
         call    sort
 
         break
@@ -54,11 +63,13 @@ def check_sort_fn(asm):
         # Read back out SORT
         their_ans = [np.int32(cpu.get_symbol_word('ARR', offset=i*4)) for i in range(len(tc))]
 
-        if their_ans != ans:
+        if their_ans != ans or len(cpu.get_clobbered())!=0 or len(cpu.get_error())!=0:
             feedback += 'Failed test case %d: ' % cur_test
             feedback += 'Sorting %s<br/>\n' % tc
             feedback += 'Code provided: %s<br/>\n' % their_ans
             feedback += 'Correct answer: %s<br/>\n' % ans
+            for addr,rid,_ in cpu.get_clobbered():
+                feedback += 'Error: function @0x%08x clobbered r%d\n<br/>' % (addr, rid)
             feedback += get_debug(cpu)
             del cpu
             return (False, feedback, None)
