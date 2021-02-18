@@ -10,4 +10,4 @@ nios2_extension = Extension(
     include_dirs=["lib"]
 )
 setup(name="pynios2",
-      ext_modules=cythonize([nios2_extension]))
+      ext_modules=cythonize([nios2_extension], language_level = "3"))

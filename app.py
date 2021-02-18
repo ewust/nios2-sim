@@ -4,6 +4,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from bottle import route, run, default_app, debug, template, request, get, post, jinja2_view, static_file, ext, jinja2_template, response
 import json
 import gc
+import getopt
 from bs4 import BeautifulSoup
 import bottle.ext.sqlite
 import time
@@ -227,7 +228,31 @@ def serve_static(path):
     return static_file(path, root="static/")
 
 
-debug(True)
+debugp=False
+ipaddr="127.0.0.1"
+ipport="8080"
+
 if __name__ == '__main__':
-    debug(True)
-    run(reloader=True)
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "di:p:h", ["ip=", "port=", "help"])
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print(err) # will print something like "option -a not recognized"
+        usage()
+        sys.exit(2)
+    output = None
+    verbose = False
+    for opt,arg in opts:
+        if opt == "-d":
+            debugp = True
+        elif opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-i", "--ip"):
+            ipaddr = arg
+        elif opt in ("-p", "--port"):
+            ipport = arg
+        else:
+            assert False, "unhandled option"
+    debug(debugp)
+    run(host=ipaddr, port=ipport, reloader=True)
