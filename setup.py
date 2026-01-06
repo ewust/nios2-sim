@@ -1,5 +1,4 @@
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 nios2_extension = Extension(
@@ -7,7 +6,10 @@ nios2_extension = Extension(
     sources=["nios2.pyx"],
     libraries=["nios2"],
     library_dirs=["lib"],
-    include_dirs=["lib"]
+    include_dirs=["lib"],
 )
-setup(name="pynios2",
-      ext_modules=cythonize([nios2_extension]))
+
+setup(
+    name="pynios2",
+    ext_modules=cythonize([nios2_extension]),
+)
