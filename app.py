@@ -5,7 +5,11 @@ from bottle import route, run, default_app, debug, template, request, get, post,
 import json
 import gc
 from bs4 import BeautifulSoup
-import bottle.ext.sqlite
+#from bottle.ext.sqlite import SQLitePlugin
+#from bottle import Bottle
+#from bottle import sqlite
+import sqlite3
+
 import time
 from datetime import datetime
 import html
@@ -22,9 +26,12 @@ Jinja2Template.settings = {
 
 
 app = application = default_app()
-plugin = ext.sqlite.Plugin(dbfile='./leaderboard.db')
-app.install(plugin)
+#plugin = SQLitePlugin(dbfile='./leaderboard.db')
+#app.install(plugin)
 
+
+def get_db():
+    return sqlite3.connect('./leaderboard.db')
 
 @post('/nios2/as')
 @jinja2_view('as.html')
@@ -126,7 +133,8 @@ def post_moodle(eid,uid):
 
 
 @post('/nios2/leaderboard')
-def post_leader(db):
+def post_leader():
+    db = get_db()
     gc.collect()
     client_ip = request.environ.get('REMOTE_ADDR')
     asm = request.forms.get('asm')
