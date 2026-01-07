@@ -214,7 +214,8 @@ def get_leaders(db, N=10):
 
 #@jinja2_view('leaderboard.html')
 @get('/nios2/leaderboard')
-def leaderboard(db):
+def leaderboard():
+    db = get_db()
     user = request.get_cookie('user')
     if user is None:
         user = ''

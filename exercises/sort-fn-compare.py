@@ -36,13 +36,13 @@ def check_sort_fn_contest(asm):
     ans = sorted(tc)
     cpu.write_symbol_word('N', len(tc))
     for i,t in enumerate(tc):
-        cpu.write_symbol_word('ARR', t, offset=i*4)
+        cpu.write_symbol_word('ARR', np.int32(t), offset=i*4)
 
     instrs = cpu.run_until_halted(500000000)
 
 
     # Read back out SORT
-    their_ans = [np.int32(cpu.get_symbol_word('ARR', offset=i*4)) for i in range(len(tc))]
+    their_ans = [np.int32(np.uint32(cpu.get_symbol_word('ARR', offset=i*4))) for i in range(len(tc))]
 
     if their_ans != ans:
         feedback = 'Failed contest test case'

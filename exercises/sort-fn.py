@@ -55,13 +55,15 @@ def check_sort_fn(asm):
         ans = sorted(tc)
         cpu.write_symbol_word('N', len(tc))
         for i,t in enumerate(tc):
-            cpu.write_symbol_word('ARR', t, offset=i*4)
+            print(t)
+            cpu.write_symbol_word('ARR', np.int32(t), offset=i*4)
 
         instrs = cpu.run_until_halted(1000000)
         tot_instr += instrs
 
         # Read back out SORT
-        their_ans = [np.int32(cpu.get_symbol_word('ARR', offset=i*4)) for i in range(len(tc))]
+        print([cpu.get_symbol_word('ARR', offset=i*4) for i in range(len(tc))])
+        their_ans = [np.int32(np.uint32(cpu.get_symbol_word('ARR', offset=i*4))) for i in range(len(tc))]
 
         if their_ans != ans or len(cpu.get_clobbered())!=0 or len(cpu.get_error())!=0:
             feedback += 'Failed test case %d: ' % cur_test
