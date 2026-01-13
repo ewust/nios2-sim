@@ -2,8 +2,6 @@
 import pynios2
 import numpy as np
 import struct
-from sim import flip_word_endian
-
 
 class Nios2(object):
 
@@ -127,7 +125,12 @@ class Nios2(object):
             return ''
         return err
 
-
+def flip_word_endian(s):
+    out = b''
+    for i in range(len(s)>>2):
+        word, = struct.unpack('>I', s[4*i:4*i+4])
+        out += struct.pack('<I', word)
+    return out
 
 def my_cb(arg=None):
     print('Python callback test: %s' % arg)
