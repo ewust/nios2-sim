@@ -134,3 +134,11 @@ def require_symbols(obj, symbols):
             return '%s not found in memory (did you enter any instructions?)' % (s)
     return None
 
+def flip_word_endian(s):
+    out = b''
+    for i in range(len(s)>>2):
+        word, = struct.unpack('>I', s[4*i:4*i+4])
+        out += struct.pack('<I', word)
+    return out
+
+
