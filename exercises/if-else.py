@@ -28,15 +28,15 @@ def check_if(asm):
         cpu.reset()
         ans = max(tc)
 
-        cpu.set_reg(4, np.uint32(tc[0]))
-        cpu.set_reg(5, np.uint32(tc[1]))
-        cpu.set_reg(6, np.uint32(tc[2]))
+        cpu.set_reg(4, np.uint32(np.int32(tc[0])))
+        cpu.set_reg(5, np.uint32(np.int32(tc[1])))
+        cpu.set_reg(6, np.uint32(np.int32(tc[2])))
 
         instrs = cpu.run_until_halted(1000)
         tot_instr += instrs
 
         # Read back out SORT
-        their_ans = np.int32(cpu.get_reg(2))
+        their_ans = np.int32(np.uint32(cpu.get_reg(2)))
 
         if their_ans != ans:
             feedback += 'Failed test case %d: ' % cur_test
