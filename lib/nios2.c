@@ -210,14 +210,18 @@ uint32_t access_mmio(struct nios2 *cpu, uint32_t addr, uint32_t val, int is_stor
             uint32_t ret = 0;
             PyObject *args;
             if (is_store) {
-               args = Py_BuildValue("(l)", val);
+               args = Py_BuildValue("(I)", val);
             } else {
                 //Py_INCREF(Py_None);
                 args = Py_BuildValue("()");
             }
             PyObject *result = PyEval_CallObject(cpu->mmios[i].callback, args);
             if (result && PyLong_Check(result)) {
-                ret = PyLong_AsLong(result);
+                ret = (uint32_t)PyLong_AsLong(result);
+                if (PyErr_Occurred()) {
+                    PyErr_Clear();
+                    ret = 0;
+                }
             }
             Py_XDECREF(result);
             Py_DECREF(args);
@@ -829,6 +833,7 @@ void one_instr(struct nios2 *cpu)
             break;
         case 0x35: //stw,    # stwio
             storeword(cpu, ea, get_reg(cpu, rB));
+            break;
         case 0x36: //bltu,
             if (get_reg(cpu, rA) < get_reg(cpu, rB)) {
                 cpu->pc += imm16;
