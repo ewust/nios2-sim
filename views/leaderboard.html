@@ -35,6 +35,7 @@
               <th>Rank #</th>
               <th>IdentiKey</th>
               <th>Executed Instructions</th>
+              <th>Executed Time (ms)</th>
               <th>Code Size (instructions)</th>
               <th>Submited</th>
              </tr>
@@ -45,6 +46,7 @@
                   <td>{{ loop.index }}</td>
                   <td>{{ r.user | e }}</td>
                   <td>{{ "{:,}".format(r.instrs) }}</td>
+                  <td>{{ r.time_ms }}</td>
                   <td>{{ "{:,}".format(r.size) }}</td>
                   <td>{{ r.time }}</td>
                 </tr>

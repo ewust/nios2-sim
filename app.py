@@ -202,14 +202,17 @@ def post_leader():
 
 
 def get_leaders(db, N=10):
-    rows = db.execute('SELECT user,min(instructions) as ins,size,timestamp FROM leaders GROUP BY user ORDER BY ins,timestamp ASC LIMIT 10')
+    rows = db.execute('SELECT user,min(instructions) as ins,size,timestamp,time_us FROM leaders GROUP BY user ORDER BY ins,timestamp ASC LIMIT 10')
     leaders = []
     for row in rows:
         time_s = datetime.fromtimestamp(row[3]).strftime('%b %d, %Y %-I:%M%p').replace('AM', 'am').replace('PM', 'pm')
+        time_us = row[4]
+        time_ms = ('%.1f ms' % (time_us / 1000.0)) if time_us is not None else 'N/A'
         leaders.append({'user': row[0],
                 'instrs': row[1],
                 'size': row[2],
-                'time': time_s})
+                'time': time_s,
+                'time_ms': time_ms})
     return leaders
 
 #@jinja2_view('leaderboard.html')
